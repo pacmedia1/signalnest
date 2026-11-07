@@ -195,6 +195,18 @@
       setStatus(el('auth-status'), 'Use an https:// URL for the approval service.', 'error');
       return;
     }
+    // Auto-normalize if user pasted n8n editor/assistant URL
+    try {
+      var parsedUrl = new URL(endpoint);
+      if (parsedUrl.pathname.indexOf('/assistant/') !== -1 || parsedUrl.pathname.indexOf('/workflow') !== -1) {
+        endpoint = parsedUrl.origin + '/webhook';
+        el('auth-endpoint').value = endpoint;
+      } else if (!/\/webhook/i.test(endpoint) && (parsedUrl.pathname === '' || parsedUrl.pathname === '/')) {
+        endpoint = parsedUrl.origin + '/webhook';
+        el('auth-endpoint').value = endpoint;
+      }
+    } catch (e) {}
+
     if (token.length < 16) {
       setStatus(el('auth-status'), 'That token looks too short. Paste the full review token.', 'error');
       return;
@@ -211,7 +223,11 @@
       logEvent('AUTH', 'Connected to webhook: ' + endpoint);
     }).catch(function (error) {
       clearSession();
-      setStatus(el('auth-status'), 'Could not connect: ' + error.message, 'error');
+      var msg = 'Could not connect: ' + error.message;
+      if (error.message.indexOf('fetch') !== -1 || error.name === 'TypeError') {
+        msg += '. Check that Workflow 03 is Active in n8n, or click "Inspect Local Dashboard".';
+      }
+      setStatus(el('auth-status'), msg, 'error');
     });
   });
 

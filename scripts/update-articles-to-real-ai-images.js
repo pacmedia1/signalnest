@@ -144,3 +144,4 @@ for (const [slug, spec] of Object.entries(REAL_AI_IMAGES)) {
 }
 
 console.log(`\nSuccessfully updated ${updated} articles to 100% real AI-generated images.\n`);
+
