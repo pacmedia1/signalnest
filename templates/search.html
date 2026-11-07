@@ -1,0 +1,43 @@
+<div class="container container--narrow" style="padding-block:clamp(16px,3vw,32px)">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="/">Home</a></li>
+      <li><span aria-current="page">Search</span></li>
+    </ol>
+  </nav>
+
+  <h1 style="margin:12px 0 20px;font-size:var(--step-4);font-weight:800">Search SignalNest</h1>
+
+  <div class="profile-card" style="margin-bottom:24px">
+    <form class="search-form" role="search" id="site-search-form" style="max-width:none;margin-bottom:14px">
+      <div class="search-form__field">
+        <span class="search-form__icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        </span>
+        <label class="visually-hidden" for="q">Search articles</label>
+        <input type="search" id="q" name="q" placeholder="Search titles, descriptions, categories, and technical concepts…" autocomplete="off" autofocus>
+      </div>
+      <button type="submit" class="btn btn--primary">Search</button>
+    </form>
+
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:var(--step--1);color:var(--muted);font-weight:700">Quick topics:</span>
+      <button type="button" class="skill-pill" data-quick-search="AI">Artificial Intelligence</button>
+      <button type="button" class="skill-pill" data-quick-search="Cash Flow">Cash Flow</button>
+      <button type="button" class="skill-pill" data-quick-search="Study">Study Skills</button>
+      <button type="button" class="skill-pill" data-quick-search="Sitemap">SEO &amp; Sitemaps</button>
+      <button type="button" class="skill-pill" data-quick-search="Minimalism">Minimalism</button>
+    </div>
+  </div>
+
+  <p class="search-status" role="status" aria-live="polite" id="search-status">Type at least two characters to search the verified archive.</p>
+  <div id="search-results"></div>
+
+  <noscript>
+    <div class="notice notice--warn" style="margin-top:20px">
+      Search requires JavaScript to query the static search index. You can also explore all articles from the <a href="/">homepage</a> or the category links in the footer.
+    </div>
+  </noscript>
+
+  <div style="margin-top:40px">{{{ads.footer}}}</div>
+</div>

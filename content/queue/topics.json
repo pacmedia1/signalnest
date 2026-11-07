@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-05T00:00:00.000Z",
+  "topics": [
+    {
+      "id": "how-to-audit-a-website-for-broken-internal-links-48213",
+      "title": "How to audit a website for broken internal links without paid tools",
+      "summary": "Manual and free-tool methods for finding internal links that return errors, and how to fix them without a crawler subscription.",
+      "sourceUrl": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
+      "sourceName": "seed",
+      "discoveredAt": "2026-11-05T00:00:00.000Z",
+      "category": "software-tutorials",
+      "categoryConfidence": 3,
+      "score": 74,
+      "status": "queued",
+      "timeSensitive": false,
+      "notes": "Seed entry so the queue is never empty on first run."
+    },
+    {
+      "id": "what-a-static-site-cannot-do-66104",
+      "title": "What a static site genuinely cannot do (and the cheapest workaround for each)",
+      "summary": "An honest boundary list for static hosting: forms, authentication, scheduled jobs, search and payments.",
+      "sourceUrl": "https://vercel.com/docs",
+      "sourceName": "seed",
+      "discoveredAt": "2026-11-05T00:00:00.000Z",
+      "category": "technology-ai",
+      "categoryConfidence": 2,
+      "score": 68,
+      "status": "candidate",
+      "timeSensitive": false,
+      "notes": "Candidate only. Set status to queued to draft it."
+    },
+    {
+      "id": "duplicate-example-rejected-10001",
+      "title": "Your daily horoscope for Tuesday",
+      "summary": "Filtered example showing how low-value topics are recorded rather than silently dropped.",
+      "sourceUrl": "https://example.org/horoscope",
+      "sourceName": "seed",
+      "discoveredAt": "2026-11-05T00:00:00.000Z",
+      "category": "lifestyle",
+      "categoryConfidence": 0,
+      "score": 5,
+      "status": "rejected",
+      "timeSensitive": false,
+      "notes": "Rejected by the low-value filter."
+    }
+  ]
+}

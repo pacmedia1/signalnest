@@ -1,0 +1,41 @@
+{
+  "slug": "fixture-unapproved-draft",
+  "title": "Deliberately Unapproved Fixture Draft",
+  "description": "A draft awaiting editorial review. If you can see this on the live site, the approval gate has failed and the build must be stopped.",
+  "status": "review",
+  "approved": false,
+  "approvedBy": null,
+  "approvedAt": null,
+  "category": "technology-ai",
+  "tags": [
+    "ai",
+    "rag",
+    "search"
+  ],
+  "keywords": [
+    "retrieval augmented generation",
+    "rag explained"
+  ],
+  "author": "SignalNest Editorial",
+  "reviewer": null,
+  "publishedAt": null,
+  "updatedAt": null,
+  "heroImage": "",
+  "heroImageAlt": "Placeholder",
+  "content": "<p>This draft is intentionally incomplete and unapproved. It exists in the repository to prove that the build refuses anything without a recorded human approval.</p><p>An editor must read the whole draft, verify every claim against a source, set status to published, set approved to true and record the approver and timestamp.</p>",
+  "sources": [],
+  "verification": [
+    "Every claim in this draft still needs a source"
+  ],
+  "featured": false,
+  "generation": {
+    "model": "gemini-2.5-flash",
+    "generatedAt": "2026-11-05T06:00:00Z",
+    "topicId": "seed-draft",
+    "promptVersion": "1.0"
+  },
+  "editorial": {
+    "notes": "Held deliberately. Demonstrates the approval gate.",
+    "revision": 1
+  }
+}

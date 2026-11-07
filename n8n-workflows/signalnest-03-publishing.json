@@ -1,0 +1,1660 @@
+{
+  "name": "SignalNest 03 - Human Approval And Publishing",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "signalnest-review/decision",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "={{ $env.ADMIN_ORIGIN || \"*\" }}"
+        }
+      },
+      "id": "76c2c4280a534815e62e9b3383e253d60477",
+      "name": "Review Decision Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n/* Server-side authorisation. The client can never skip this. */\nvar body = $input.first().json || {};\nvar headers = body.headers || {};\nvar provided = String(headers['x-review-token'] || headers['X-Review-Token'] || '');\nvar expected = String($env.APPROVAL_SHARED_SECRET || '');\n\nfunction fail(status, message) {\n  return [{ json: { authorized: false, status: status, message: message } }];\n}\n\nif (!expected || expected.length < 16) {\n  return fail(500, 'APPROVAL_SHARED_SECRET is not configured on the workflow host. Refusing all requests.');\n}\nif (!provided) {\n  return fail(401, 'Missing review token.');\n}\n\n/* Constant-time comparison so response timing does not leak the secret. */\nvar mismatch = provided.length === expected.length ? 0 : 1;\nvar maxLen = Math.max(provided.length, expected.length);\nfor (var i = 0; i < maxLen; i++) {\n  mismatch |= (provided.charCodeAt(i % Math.max(provided.length, 1)) || 0) ^ (expected.charCodeAt(i % Math.max(expected.length, 1)) || 0);\n}\nif (mismatch !== 0) {\n  return fail(401, 'Invalid review token.');\n}\n\nvar raw = body.body === undefined ? {} : body.body;\nif (typeof raw === 'string') {\n  if (raw.length > 262144) return fail(413, 'Request body too large.');\n  try { raw = JSON.parse(raw); } catch (e) { return fail(400, 'Request body is not valid JSON.'); }\n}\nif (typeof raw !== 'object' || raw === null) raw = {};\n\nreturn [{ json: { authorized: true, status: 200, payload: raw, query: body.query || {}, method: body.httpMethod || 'POST' } }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "6b08e1ff45b6bd9d1d9dd6765b9ea742c23c",
+      "name": "Authorise Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.authorized }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1b1c8fbf786e1c83a750936af573b34f9f5",
+      "name": "Decision Authorised?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, message: $json.message }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "84797e39ac2482b305be8f025f1c5cf33c48",
+      "name": "Respond Unauthorised",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar auth = $input.first().json;\nvar payload = auth.payload || {};\nvar decision = String(payload.decision || '').toLowerCase();\nvar article = payload.article || {};\n\nvar allowed = ['approve', 'save', 'revise', 'reject'];\nvar problems = [];\nif (allowed.indexOf(decision) === -1) problems.push('decision must be one of: ' + allowed.join(', '));\nif (!article.slug || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(String(article.slug))) problems.push('article.slug is missing or invalid.');\nif (String(JSON.stringify(article)).length > 250000) problems.push('article payload is too large.');\n\nreturn [{ json: {\n  ok: problems.length === 0,\n  problems: problems,\n  decision: decision,\n  slug: String(article.slug || ''),\n  reviewer: String(payload.reviewer || '').trim().slice(0, 80),\n  notes: String(payload.notes || '').trim().slice(0, 2000),\n  article: article\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "c402a8a26cfcf5c0fa288abdbec47ed16776",
+      "name": "Validate Decision Shape",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        930,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ecbef68ad1c33cecd188e1bb092ff8d6a002",
+      "name": "Payload Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1160,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, message: $json.problems.join(\" \") }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "bc4a612963c708120e20a3e1226b40605c19",
+      "name": "Respond Invalid Payload",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1160,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/drafts/{{ $json.slug }}.json?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        }
+      },
+      "id": "bd313227be494284debfc443713bf8f66018",
+      "name": "Read Draft File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1390,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nfunction slugify(input, maxLength) {\n  var base = String(input || '')\n    .normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase().replace(/['’\"]/g, '')\n    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');\n  var trimmed = base.slice(0, maxLength || 80).replace(/-+$/g, '');\n  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(trimmed) ? trimmed : '';\n}\nfunction isValidSlug(slug) {\n  return typeof slug === 'string' && slug.length >= 3 && slug.length <= 80 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug);\n}\nfunction stripTags(html) {\n  return String(html || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\n\n/* UTF-8 safe base64 (no Buffer / btoa dependency). */\nfunction base64Encode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var str = String(input === undefined || input === null ? '' : input);\n  var bytes = [];\n  for (var i = 0; i < str.length; i++) {\n    var code = str.codePointAt(i);\n    if (code > 0xffff) i++;\n    if (code < 0x80) bytes.push(code);\n    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));\n    else if (code < 0x10000) bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n    else bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n  }\n  var out = '';\n  for (var j = 0; j < bytes.length; j += 3) {\n    var b0 = bytes[j], b1 = bytes[j + 1], b2 = bytes[j + 2];\n    out += CH[b0 >> 2];\n    out += CH[((b0 & 3) << 4) | ((b1 || 0) >> 4)];\n    out += b1 === undefined ? '=' : CH[((b1 & 15) << 2) | ((b2 || 0) >> 6)];\n    out += b2 === undefined ? '=' : CH[b2 & 63];\n  }\n  return out;\n}\n\nfunction base64Decode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var clean = String(input || '').replace(/[^A-Za-z0-9+/=]/g, '');\n  var bytes = [];\n  for (var i = 0; i < clean.length; i += 4) {\n    var c0 = CH.indexOf(clean[i]), c1 = CH.indexOf(clean[i + 1]);\n    var c2 = CH.indexOf(clean[i + 2]), c3 = CH.indexOf(clean[i + 3]);\n    if (c0 < 0 || c1 < 0) break;\n    bytes.push((c0 << 2) | (c1 >> 4));\n    if (c2 >= 0) bytes.push(((c1 & 15) << 4) | (c2 >> 2));\n    if (c3 >= 0) bytes.push(((c2 & 3) << 6) | c3);\n  }\n  var out = '';\n  for (var k = 0; k < bytes.length;) {\n    var b = bytes[k];\n    if (b < 0x80) { out += String.fromCharCode(b); k += 1; }\n    else if (b < 0xe0) { out += String.fromCharCode(((b & 0x1f) << 6) | (bytes[k + 1] & 0x3f)); k += 2; }\n    else if (b < 0xf0) { out += String.fromCharCode(((b & 0x0f) << 12) | ((bytes[k + 1] & 0x3f) << 6) | (bytes[k + 2] & 0x3f)); k += 3; }\n    else { var cp = ((b & 0x07) << 18) | ((bytes[k + 1] & 0x3f) << 12) | ((bytes[k + 2] & 0x3f) << 6) | (bytes[k + 3] & 0x3f); out += String.fromCodePoint(cp); k += 4; }\n  }\n  return out;\n}\n\n\nvar readResponse = $input.first().json || {};\nvar decisionInfo = $('Validate Decision Shape').first().json;\nvar editor = decisionInfo.article || {};\n\nif (readResponse.statusCode === 404) {\n  return [{ json: { ok: false, status: 404, message: 'Draft \"' + decisionInfo.slug + '\" was not found in the repository.' } }];\n}\nif (readResponse.statusCode !== 200 || !readResponse.body) {\n  return [{ json: { ok: false, status: 502, message: 'Could not read the draft file from GitHub (HTTP ' + readResponse.statusCode + ').' } }];\n}\n\nvar current = readResponse.body;\nif (typeof current === 'string') { try { current = JSON.parse(current); } catch (e) { current = null; } }\nif (!current) return [{ json: { ok: false, status: 500, message: 'The stored draft file is not valid JSON.' } }];\n\nvar sha = (readResponse.body && readResponse.body.sha) || current.sha || null;\nvar draft = current;\ndelete draft.sha;\n\n/* Apply editor changes. Server-controlled fields are never taken from the client. */\nif (typeof editor.title === 'string') draft.title = editor.title.trim().slice(0, 120);\nif (typeof editor.description === 'string') draft.description = editor.description.trim().slice(0, 320);\nif (typeof editor.content === 'string') draft.content = editor.content;\nif (typeof editor.category === 'string') draft.category = editor.category.trim();\nif (typeof editor.heroImage === 'string') draft.heroImage = editor.heroImage.trim();\nif (typeof editor.heroImageAlt === 'string') draft.heroImageAlt = editor.heroImageAlt.trim().slice(0, 200);\nif (Array.isArray(editor.tags)) draft.tags = editor.tags.map(function (t) { return String(t).trim(); }).filter(Boolean).slice(0, 8);\nif (Array.isArray(editor.sources)) {\n  draft.sources = editor.sources.filter(function (s) { return s && /^https?:\\/\\//i.test(String(s.url || '')); }).slice(0, 6).map(function (s) {\n    return { title: String(s.title || s.url).slice(0, 160), url: String(s.url), publisher: String(s.publisher || '') };\n  });\n}\nif (Array.isArray(editor.verification)) {\n  draft.verification = editor.verification.map(function (v) { return String(v).slice(0, 200); }).filter(Boolean).slice(0, 12);\n}\n\nvar CATEGORIES = ['technology-ai', 'education', 'business', 'digital-skills', 'software-tutorials', 'lifestyle', 'internet-trends'];\nvar MIN_WORDS = parseInt($env.MIN_ARTICLE_WORDS || '700', 10);\nvar words = String(draft.content || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim().split(' ').filter(Boolean).length;\n\nvar problems = [];\nif (String(draft.title || '').length < 10) problems.push('Title must be at least 10 characters.');\nif (String(draft.title || '').length > 120) problems.push('Title must be at most 120 characters.');\nif (String(draft.description || '').length < 40) problems.push('Description must be at least 40 characters.');\nif (String(draft.description || '').length > 320) problems.push('Description must be at most 320 characters.');\nif (CATEGORIES.indexOf(String(draft.category || '')) === -1) problems.push('Category \"' + draft.category + '\" is not one of the configured categories.');\nif (!isValidSlug(String(draft.slug || ''))) problems.push('Slug is invalid.');\nif (words < MIN_WORDS) problems.push('Body is ' + words + ' words; the minimum is ' + MIN_WORDS + '.');\nif (!Array.isArray(draft.sources) || !draft.sources.length) problems.push('At least one valid source URL is required before publication.');\n\nvar needsContent = decisionInfo.decision === 'approve';\nif (needsContent && !decisionInfo.reviewer) problems.push('An approving editor name is required.');\n\ndraft.editorial = draft.editorial || { notes: '', revision: 1 };\ndraft.editorial.notes = decisionInfo.notes || draft.editorial.notes || '';\ndraft.editorial.revision = (draft.editorial.revision || 1) + 1;\ndraft.editorial.lastDecision = decisionInfo.decision;\ndraft.editorial.lastDecisionAt = new Date().toISOString();\n\nif (problems.length) {\n  return [{ json: { ok: false, status: 422, message: 'Draft is not publishable: ' + problems.join(' '), problems: problems } }];\n}\n\nif (decisionInfo.decision === 'reject') {\n  draft.status = 'rejected';\n  draft.approved = false;\n  draft.rejectedAt = new Date().toISOString();\n  draft.rejectedBy = decisionInfo.reviewer || 'editor';\n} else if (decisionInfo.decision === 'revise') {\n  draft.status = 'revision-requested';\n  draft.approved = false;\n  draft.revisionNotes = decisionInfo.notes || '';\n} else if (decisionInfo.decision === 'save') {\n  draft.status = 'review';\n  draft.approved = false;\n} else {\n  /* approve: approval metadata is set HERE, on the server, from the verified request. */\n  draft.status = 'published';\n  draft.approved = true;\n  draft.approvedBy = decisionInfo.reviewer;\n  draft.approvedAt = new Date().toISOString();\n  draft.publishedAt = draft.publishedAt || draft.approvedAt;\n  draft.reviewer = decisionInfo.reviewer;\n}\n\nvar draftBody = {\n  message: 'review(' + decisionInfo.decision + '): ' + draft.slug + ' by ' + (decisionInfo.reviewer || 'editor'),\n  content: base64Encode(JSON.stringify(draft, null, 2)),\n  branch: $env.GITHUB_BRANCH\n};\nif (sha) draftBody.sha = sha;\n\nreturn [{ json: {\n  ok: true,\n  decision: decisionInfo.decision,\n  slug: draft.slug,\n  wordCount: words,\n  draft: draft,\n  draftSha: sha,\n  draftPutBody: JSON.stringify(draftBody),\n  expectedUrl: ($env.SITE_URL || '') + '/articles/' + draft.slug\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "237b12a7bf00d4019b9f494814a5a205fae6",
+      "name": "Merge Edits And Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9a6158622e07abfcc871a6788f738094278a",
+      "name": "Merge Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1850,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, message: $json.message }) }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "id": "3de6c81f95c74f08fc60203ad1f4b298043c",
+      "name": "Respond Gate Failure",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1850,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "763dfcd7d74f12612a0fa58126c94ae13e8e",
+      "name": "Is Approval?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2080,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/articles/{{ $(\"Merge Edits And Gate\").first().json.slug }}.json?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        }
+      },
+      "id": "36c8e166474867adaf195d7e1b7c494fb248",
+      "name": "Read Existing Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2310,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\n/* UTF-8 safe base64 (no Buffer / btoa dependency). */\nfunction base64Encode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var str = String(input === undefined || input === null ? '' : input);\n  var bytes = [];\n  for (var i = 0; i < str.length; i++) {\n    var code = str.codePointAt(i);\n    if (code > 0xffff) i++;\n    if (code < 0x80) bytes.push(code);\n    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));\n    else if (code < 0x10000) bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n    else bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n  }\n  var out = '';\n  for (var j = 0; j < bytes.length; j += 3) {\n    var b0 = bytes[j], b1 = bytes[j + 1], b2 = bytes[j + 2];\n    out += CH[b0 >> 2];\n    out += CH[((b0 & 3) << 4) | ((b1 || 0) >> 4)];\n    out += b1 === undefined ? '=' : CH[((b1 & 15) << 2) | ((b2 || 0) >> 6)];\n    out += b2 === undefined ? '=' : CH[b2 & 63];\n  }\n  return out;\n}\n\nfunction base64Decode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var clean = String(input || '').replace(/[^A-Za-z0-9+/=]/g, '');\n  var bytes = [];\n  for (var i = 0; i < clean.length; i += 4) {\n    var c0 = CH.indexOf(clean[i]), c1 = CH.indexOf(clean[i + 1]);\n    var c2 = CH.indexOf(clean[i + 2]), c3 = CH.indexOf(clean[i + 3]);\n    if (c0 < 0 || c1 < 0) break;\n    bytes.push((c0 << 2) | (c1 >> 4));\n    if (c2 >= 0) bytes.push(((c1 & 15) << 4) | (c2 >> 2));\n    if (c3 >= 0) bytes.push(((c2 & 3) << 6) | c3);\n  }\n  var out = '';\n  for (var k = 0; k < bytes.length;) {\n    var b = bytes[k];\n    if (b < 0x80) { out += String.fromCharCode(b); k += 1; }\n    else if (b < 0xe0) { out += String.fromCharCode(((b & 0x1f) << 6) | (bytes[k + 1] & 0x3f)); k += 2; }\n    else if (b < 0xf0) { out += String.fromCharCode(((b & 0x0f) << 12) | ((bytes[k + 1] & 0x3f) << 6) | (bytes[k + 2] & 0x3f)); k += 3; }\n    else { var cp = ((b & 0x07) << 18) | ((bytes[k + 1] & 0x3f) << 12) | ((bytes[k + 2] & 0x3f) << 6) | (bytes[k + 3] & 0x3f); out += String.fromCodePoint(cp); k += 4; }\n  }\n  return out;\n}\n\nvar gate = $('Merge Edits And Gate').first().json;\nvar existing = $input.first().json || {};\n\nvar article = gate.draft;\narticle.status = 'published';\narticle.approved = true;\n\nvar sha = null;\nif (existing.statusCode === 200 && existing.body) {\n  sha = (existing.body && existing.body.sha) || null;\n  /* Preserve the original publication date when republishing an existing article. */\n  var prior = existing.body;\n  if (typeof prior === 'string') { try { prior = JSON.parse(prior); } catch (e) { prior = null; } }\n  if (prior && prior.publishedAt) article.publishedAt = prior.publishedAt;\n  article.updatedAt = new Date().toISOString();\n}\n\nvar body = {\n  message: 'publish: ' + article.slug + ' (approved by ' + article.approvedBy + ')',\n  content: base64Encode(JSON.stringify(article, null, 2)),\n  branch: $env.GITHUB_BRANCH\n};\nif (sha) body.sha = sha;\n\nreturn [{ json: {\n  slug: article.slug,\n  title: article.title,\n  sha: sha,\n  isRepublish: !!sha,\n  publishPutBody: JSON.stringify(body),\n  draftPutBody: gate.draftPutBody,\n  expectedUrl: gate.expectedUrl,\n  wordCount: gate.wordCount\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "c2fe38430fe9601b8666e83e6816e5b899d3",
+      "name": "Prepare Publish Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2540,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/articles/{{ $json.slug }}.json?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.publishPutBody }}"
+      },
+      "id": "1fde90d496c21e283262f929ddc0c072dc0d",
+      "name": "Publish To GitHub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2770,
+        120
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar response = $input.first().json || {};\nvar prepared = $('Prepare Publish Payload').first().json;\nvar status = response.statusCode;\n\nif (status === 409 || status === 422) {\n  return [{ json: {\n    committed: false,\n    conflict: true,\n    message: 'GitHub rejected the write with HTTP ' + status + ' (SHA conflict or validation error). The article file changed during review. Reopen the draft and approve again.',\n    status: status\n  } }];\n}\nif (status !== 200 && status !== 201) {\n  return [{ json: {\n    committed: false,\n    conflict: false,\n    message: 'Publishing failed with HTTP ' + status + ': ' + String(JSON.stringify(response.body || {})).slice(0, 300),\n    status: status\n  } }];\n}\n\nvar commit = (response.body && response.body.commit) || {};\nreturn [{ json: {\n  committed: true,\n  conflict: false,\n  slug: prepared.slug,\n  title: prepared.title,\n  isRepublish: prepared.isRepublish,\n  commitSha: String(commit.sha || '').slice(0, 12),\n  expectedUrl: prepared.expectedUrl,\n  draftPutBody: prepared.draftPutBody,\n  message: 'Published ' + prepared.slug + '.'\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "41fe1bfde935dd226c369502d480333a0091",
+      "name": "Confirm Publish Commit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.committed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8b6fe710f644200b39e58233224d38f0d038",
+      "name": "Commit Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3230,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, message: $json.message }) }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "5f7c1e9edbd8ad11f3fce4d30ec5c561d5c3",
+      "name": "Respond Publish Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3230,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n    ok: true,\n    message: $json.message + ' Vercel is rebuilding; the article should be live in about a minute.',\n    publishedUrl: $json.expectedUrl,\n    commit: $json.commitSha,\n    republished: $json.isRepublish\n  }) }}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "a0b6703130343fd9289d8cfa3dedcda2bebe",
+      "name": "Respond Published",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3460,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/drafts/{{ $(\"Confirm Publish Commit\").first().json.slug }}.json?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $(\"Confirm Publish Commit\").first().json.draftPutBody }}"
+      },
+      "id": "1a55f1cfe713f6b6ebf54c6045998c3e206a",
+      "name": "Archive Published Draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3690,
+        120
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 75,
+        "unit": "seconds"
+      },
+      "id": "a4278295c9538c2887c69412228f5daba0df",
+      "name": "Wait For Deployment",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3920,
+        120
+      ],
+      "webhookId": "e9dbff45-b389-416d-9b0f-0c525d0272e7"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=($env.SITE_URL || '') + '/articles/' + $('Confirm Publish Commit').first().json.slug",
+        "authentication": "none",
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "9b6ff651b4e45376b736fec5fa78983303dd",
+      "name": "Check Live Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4150,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar live = $input.first().json || {};\nvar committed = $('Confirm Publish Commit').first().json;\nvar status = live.statusCode;\nvar html = typeof live.body === 'string' ? live.body : '';\nvar ok = status === 200 && html.indexOf(committed.slug) !== -1;\n\nreturn [{ json: {\n  verified: ok,\n  httpStatus: status,\n  slug: committed.slug,\n  url: committed.expectedUrl,\n  inSitemapCheck: 'Verify manually: the sitemap and article index regenerate on every build.',\n  message: ok\n    ? 'Deployment verified: ' + committed.expectedUrl + ' returns HTTP 200.'\n    : 'Deployment not verified yet (HTTP ' + status + '). Vercel may still be building, or the build failed. Check the Vercel dashboard, then re-check the URL.'\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "4995906338190a3b1dc2b248b101e5e687af",
+      "name": "Verify Live Article",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4380,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=✅ <b>Published</b>\n{{ $json.slug }}\n{{ $json.message }}\n{{ $json.url }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "16b500ff3260505485aedf44978741ac3bd0",
+      "name": "Notify Publication",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        4610,
+        120
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/drafts/{{ $(\"Merge Edits And Gate\").first().json.slug }}.json?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $(\"Merge Edits And Gate\").first().json.draftPutBody }}"
+      },
+      "id": "24401d8fc938f28dcf8b3f0de7312e547ba4",
+      "name": "Save Draft Changes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2310,
+        540
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar response = $input.first().json || {};\nvar gate = $('Merge Edits And Gate').first().json;\nvar ok = response.statusCode === 200 || response.statusCode === 201;\nreturn [{ json: {\n  ok: ok,\n  decision: gate.decision,\n  slug: gate.slug,\n  status: response.statusCode,\n  message: ok\n    ? 'Draft ' + gate.slug + ' updated (' + gate.decision + '). Nothing was published.'\n    : 'Could not update the draft (HTTP ' + response.statusCode + ').'\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "e9482fd7a66cee3fcc829f39d00e20cea6a7",
+      "name": "Confirm Draft Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2540,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: $json.ok, message: $json.message, publishedUrl: null }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7e92bdc1746714061736172b08a6f64514b1",
+      "name": "Respond Draft Updated",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2770,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "path": "signalnest-review/drafts",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "={{ $env.ADMIN_ORIGIN || \"*\" }}"
+        }
+      },
+      "id": "cc1de8a44a96c2bc14b2b2a13a7e3ab14b11",
+      "name": "List Drafts Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n/* Server-side authorisation. The client can never skip this. */\nvar body = $input.first().json || {};\nvar headers = body.headers || {};\nvar provided = String(headers['x-review-token'] || headers['X-Review-Token'] || '');\nvar expected = String($env.APPROVAL_SHARED_SECRET || '');\n\nfunction fail(status, message) {\n  return [{ json: { authorized: false, status: status, message: message } }];\n}\n\nif (!expected || expected.length < 16) {\n  return fail(500, 'APPROVAL_SHARED_SECRET is not configured on the workflow host. Refusing all requests.');\n}\nif (!provided) {\n  return fail(401, 'Missing review token.');\n}\n\n/* Constant-time comparison so response timing does not leak the secret. */\nvar mismatch = provided.length === expected.length ? 0 : 1;\nvar maxLen = Math.max(provided.length, expected.length);\nfor (var i = 0; i < maxLen; i++) {\n  mismatch |= (provided.charCodeAt(i % Math.max(provided.length, 1)) || 0) ^ (expected.charCodeAt(i % Math.max(expected.length, 1)) || 0);\n}\nif (mismatch !== 0) {\n  return fail(401, 'Invalid review token.');\n}\n\nvar raw = body.body === undefined ? {} : body.body;\nif (typeof raw === 'string') {\n  if (raw.length > 262144) return fail(413, 'Request body too large.');\n  try { raw = JSON.parse(raw); } catch (e) { return fail(400, 'Request body is not valid JSON.'); }\n}\nif (typeof raw !== 'object' || raw === null) raw = {};\n\nreturn [{ json: { authorized: true, status: 200, payload: raw, query: body.query || {}, method: body.httpMethod || 'POST' } }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "d16cbd8d98568af2f4008e764e8dbfdafd7f",
+      "name": "Authorise List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.authorized }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "da059f217e9846f26345dee153a8e3a1c542",
+      "name": "List Authorised?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, message: $json.message }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "95a1cd0c1085e517f66694697383122da356",
+      "name": "Respond List Unauthorised",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        1380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/drafts?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        }
+      },
+      "id": "959f57f355d5809868fc2b56268dd88cf7fb",
+      "name": "List Draft Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        930,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar listed = $input.first().json || {};\nif (listed.statusCode === 404) return [{ json: { empty: true } }];\nif (listed.statusCode !== 200 || !Array.isArray(listed.body)) {\n  return [{ json: { empty: true, error: 'Could not list drafts (HTTP ' + listed.statusCode + ').' } }];\n}\nvar files = listed.body.filter(function (entry) { return entry && String(entry.name || '').endsWith('.json'); });\nif (!files.length) return [{ json: { empty: true } }];\nreturn files.map(function (entry) { return { json: { name: entry.name, path: entry.path } }; });\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "90f1404a59f26eca21160351d68a8f5b0201",
+      "name": "Split Draft Files",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.empty }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "01909bd638f247e5bb348281987aa2854b08",
+      "name": "Has Draft Files?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1390,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, drafts: [], categories: [] }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "04b01941fbb0f690fe3757ff0be000039404",
+      "name": "Respond No Drafts",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1390,
+        1380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/{{ $json.path }}?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        }
+      },
+      "id": "063c0fe3b16a3fd831c6aff90e8973c23bdc",
+      "name": "Fetch Draft File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\n/* UTF-8 safe base64 (no Buffer / btoa dependency). */\nfunction base64Encode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var str = String(input === undefined || input === null ? '' : input);\n  var bytes = [];\n  for (var i = 0; i < str.length; i++) {\n    var code = str.codePointAt(i);\n    if (code > 0xffff) i++;\n    if (code < 0x80) bytes.push(code);\n    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));\n    else if (code < 0x10000) bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n    else bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n  }\n  var out = '';\n  for (var j = 0; j < bytes.length; j += 3) {\n    var b0 = bytes[j], b1 = bytes[j + 1], b2 = bytes[j + 2];\n    out += CH[b0 >> 2];\n    out += CH[((b0 & 3) << 4) | ((b1 || 0) >> 4)];\n    out += b1 === undefined ? '=' : CH[((b1 & 15) << 2) | ((b2 || 0) >> 6)];\n    out += b2 === undefined ? '=' : CH[b2 & 63];\n  }\n  return out;\n}\n\nfunction base64Decode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var clean = String(input || '').replace(/[^A-Za-z0-9+/=]/g, '');\n  var bytes = [];\n  for (var i = 0; i < clean.length; i += 4) {\n    var c0 = CH.indexOf(clean[i]), c1 = CH.indexOf(clean[i + 1]);\n    var c2 = CH.indexOf(clean[i + 2]), c3 = CH.indexOf(clean[i + 3]);\n    if (c0 < 0 || c1 < 0) break;\n    bytes.push((c0 << 2) | (c1 >> 4));\n    if (c2 >= 0) bytes.push(((c1 & 15) << 4) | (c2 >> 2));\n    if (c3 >= 0) bytes.push(((c2 & 3) << 6) | c3);\n  }\n  var out = '';\n  for (var k = 0; k < bytes.length;) {\n    var b = bytes[k];\n    if (b < 0x80) { out += String.fromCharCode(b); k += 1; }\n    else if (b < 0xe0) { out += String.fromCharCode(((b & 0x1f) << 6) | (bytes[k + 1] & 0x3f)); k += 2; }\n    else if (b < 0xf0) { out += String.fromCharCode(((b & 0x0f) << 12) | ((bytes[k + 1] & 0x3f) << 6) | (bytes[k + 2] & 0x3f)); k += 3; }\n    else { var cp = ((b & 0x07) << 18) | ((bytes[k + 1] & 0x3f) << 12) | ((bytes[k + 2] & 0x3f) << 6) | (bytes[k + 3] & 0x3f); out += String.fromCodePoint(cp); k += 4; }\n  }\n  return out;\n}\n\nvar items = $input.all();\nvar drafts = [];\nitems.forEach(function (item) {\n  var response = item.json || {};\n  if (response.statusCode !== 200 || !response.body) return;\n  var file = response.body;\n  if (typeof file === 'string') { try { file = JSON.parse(file); } catch (e) { return; } }\n  if (!file || !file.content) return;\n  var draft = null;\n  try { draft = JSON.parse(base64Decode(String(file.content).replace(/\\n/g, ''))); } catch (e) { return; }\n  if (!draft || !draft.slug) return;\n  drafts.push({\n    slug: draft.slug,\n    title: draft.title,\n    description: draft.description,\n    category: draft.category,\n    categoryName: draft.category,\n    status: draft.status,\n    wordCount: String(draft.content || '').replace(/<[^>]*>/g, ' ').split(/\\s+/).filter(Boolean).length,\n    generatedAt: draft.generation && draft.generation.generatedAt,\n    model: draft.generation && draft.generation.model,\n    sources: Array.isArray(draft.sources) ? draft.sources.length : 0\n  });\n});\n\ndrafts.sort(function (a, b) { return String(b.generatedAt || '').localeCompare(String(a.generatedAt || '')); });\n\nreturn [{ json: {\n  ok: true,\n  count: drafts.length,\n  drafts: drafts,\n  categories: [\n    { slug: 'technology-ai', name: 'Technology & AI' },\n    { slug: 'education', name: 'Education & Learning' },\n    { slug: 'business', name: 'Business & Entrepreneurship' },\n    { slug: 'digital-skills', name: 'Digital Skills & Opportunities' },\n    { slug: 'software-tutorials', name: 'Software & Tutorials' },\n    { slug: 'lifestyle', name: 'Lifestyle & General Knowledge' },\n    { slug: 'internet-trends', name: 'Internet Trends & Resources' }\n  ]\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "64034eb51cb34836270d08126ff170fbf3b0",
+      "name": "Assemble Draft List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1850,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "e125113f990eb5d59eeb71ba73b94598025d",
+      "name": "Respond Draft List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2080,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "path": "signalnest-review/draft",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "={{ $env.ADMIN_ORIGIN || \"*\" }}"
+        }
+      },
+      "id": "49084914033f310da39c76d5e8def5bcb0fd",
+      "name": "Get Draft Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        1660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n/* Server-side authorisation. The client can never skip this. */\nvar body = $input.first().json || {};\nvar headers = body.headers || {};\nvar provided = String(headers['x-review-token'] || headers['X-Review-Token'] || '');\nvar expected = String($env.APPROVAL_SHARED_SECRET || '');\n\nfunction fail(status, message) {\n  return [{ json: { authorized: false, status: status, message: message } }];\n}\n\nif (!expected || expected.length < 16) {\n  return fail(500, 'APPROVAL_SHARED_SECRET is not configured on the workflow host. Refusing all requests.');\n}\nif (!provided) {\n  return fail(401, 'Missing review token.');\n}\n\n/* Constant-time comparison so response timing does not leak the secret. */\nvar mismatch = provided.length === expected.length ? 0 : 1;\nvar maxLen = Math.max(provided.length, expected.length);\nfor (var i = 0; i < maxLen; i++) {\n  mismatch |= (provided.charCodeAt(i % Math.max(provided.length, 1)) || 0) ^ (expected.charCodeAt(i % Math.max(expected.length, 1)) || 0);\n}\nif (mismatch !== 0) {\n  return fail(401, 'Invalid review token.');\n}\n\nvar raw = body.body === undefined ? {} : body.body;\nif (typeof raw === 'string') {\n  if (raw.length > 262144) return fail(413, 'Request body too large.');\n  try { raw = JSON.parse(raw); } catch (e) { return fail(400, 'Request body is not valid JSON.'); }\n}\nif (typeof raw !== 'object' || raw === null) raw = {};\n\nreturn [{ json: { authorized: true, status: 200, payload: raw, query: body.query || {}, method: body.httpMethod || 'POST' } }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "3e911d68ba8c2c794947f3698cdf7eadc101",
+      "name": "Authorise Detail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        1660
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.authorized }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "072a05ef33400243d9117e1dc7b09ce47d4d",
+      "name": "Detail Authorised?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        1660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, message: $json.message }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "1d98fd5841d000b7116df44cc3f5f96b46c9",
+      "name": "Respond Detail Unauthorised",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar auth = $input.first().json;\nvar query = auth.query || {};\nvar slug = String(query.slug || '');\nif (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {\n  return [{ json: { valid: false } }];\n}\nreturn [{ json: { valid: true, slug: slug } }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "38fad4f7b89cc47e829b7c4f4d8633e2b206",
+      "name": "Extract Requested Slug",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        930,
+        1660
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bc4e604324458e3345bf807d2e3b75fa21fc",
+      "name": "Slug Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1160,
+        1660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, message: \"A valid ?slug= parameter is required.\" }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "0d09044927cab39103a20b86d2f2e4a88e34",
+      "name": "Respond Bad Slug",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1160,
+        1940
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/drafts/{{ $json.slug }}.json?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        }
+      },
+      "id": "23a9b57ba91e2ed03f40350b5423aa0baae3",
+      "name": "Read Single Draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1390,
+        1660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\n/* UTF-8 safe base64 (no Buffer / btoa dependency). */\nfunction base64Encode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var str = String(input === undefined || input === null ? '' : input);\n  var bytes = [];\n  for (var i = 0; i < str.length; i++) {\n    var code = str.codePointAt(i);\n    if (code > 0xffff) i++;\n    if (code < 0x80) bytes.push(code);\n    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));\n    else if (code < 0x10000) bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n    else bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n  }\n  var out = '';\n  for (var j = 0; j < bytes.length; j += 3) {\n    var b0 = bytes[j], b1 = bytes[j + 1], b2 = bytes[j + 2];\n    out += CH[b0 >> 2];\n    out += CH[((b0 & 3) << 4) | ((b1 || 0) >> 4)];\n    out += b1 === undefined ? '=' : CH[((b1 & 15) << 2) | ((b2 || 0) >> 6)];\n    out += b2 === undefined ? '=' : CH[b2 & 63];\n  }\n  return out;\n}\n\nfunction base64Decode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var clean = String(input || '').replace(/[^A-Za-z0-9+/=]/g, '');\n  var bytes = [];\n  for (var i = 0; i < clean.length; i += 4) {\n    var c0 = CH.indexOf(clean[i]), c1 = CH.indexOf(clean[i + 1]);\n    var c2 = CH.indexOf(clean[i + 2]), c3 = CH.indexOf(clean[i + 3]);\n    if (c0 < 0 || c1 < 0) break;\n    bytes.push((c0 << 2) | (c1 >> 4));\n    if (c2 >= 0) bytes.push(((c1 & 15) << 4) | (c2 >> 2));\n    if (c3 >= 0) bytes.push(((c2 & 3) << 6) | c3);\n  }\n  var out = '';\n  for (var k = 0; k < bytes.length;) {\n    var b = bytes[k];\n    if (b < 0x80) { out += String.fromCharCode(b); k += 1; }\n    else if (b < 0xe0) { out += String.fromCharCode(((b & 0x1f) << 6) | (bytes[k + 1] & 0x3f)); k += 2; }\n    else if (b < 0xf0) { out += String.fromCharCode(((b & 0x0f) << 12) | ((bytes[k + 1] & 0x3f) << 6) | (bytes[k + 2] & 0x3f)); k += 3; }\n    else { var cp = ((b & 0x07) << 18) | ((bytes[k + 1] & 0x3f) << 12) | ((bytes[k + 2] & 0x3f) << 6) | (bytes[k + 3] & 0x3f); out += String.fromCodePoint(cp); k += 4; }\n  }\n  return out;\n}\n\nvar response = $input.first().json || {};\nif (response.statusCode === 404) return [{ json: { ok: false, status: 404, message: 'Draft not found.' } }];\nif (response.statusCode !== 200 || !response.body) return [{ json: { ok: false, status: 502, message: 'Could not read the draft.' } }];\n\nvar file = response.body;\nif (typeof file === 'string') { try { file = JSON.parse(file); } catch (e) { return [{ json: { ok: false, status: 500, message: 'Unreadable draft.' } }]; } }\nvar draft = null;\ntry { draft = JSON.parse(base64Decode(String(file.content || '').replace(/\\n/g, ''))); } catch (e) { return [{ json: { ok: false, status: 500, message: 'Draft content is not valid JSON.' } }]; }\n\nreturn [{ json: {\n  ok: true,\n  status: 200,\n  draft: draft\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "6dfb04a1302efb12a0cb0abb153076111c42",
+      "name": "Prepare Draft Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        1660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "0fbd10083a78b144479b6049d6cdcf479ab1",
+      "name": "Respond Draft Detail",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1850,
+        1660
+      ]
+    }
+  ],
+  "connections": {
+    "Review Decision Webhook": {
+      "main": [
+        [
+          {
+            "node": "Authorise Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authorise Decision": {
+      "main": [
+        [
+          {
+            "node": "Decision Authorised?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision Authorised?": {
+      "main": [
+        [
+          {
+            "node": "Validate Decision Shape",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Unauthorised",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Decision Shape": {
+      "main": [
+        [
+          {
+            "node": "Payload Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload Valid?": {
+      "main": [
+        [
+          {
+            "node": "Read Draft File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Invalid Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Draft File": {
+      "main": [
+        [
+          {
+            "node": "Merge Edits And Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Edits And Gate": {
+      "main": [
+        [
+          {
+            "node": "Merge Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Is Approval?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Gate Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Approval?": {
+      "main": [
+        [
+          {
+            "node": "Read Existing Article",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Draft Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Existing Article": {
+      "main": [
+        [
+          {
+            "node": "Prepare Publish Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Publish Payload": {
+      "main": [
+        [
+          {
+            "node": "Publish To GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish To GitHub": {
+      "main": [
+        [
+          {
+            "node": "Confirm Publish Commit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Publish Commit": {
+      "main": [
+        [
+          {
+            "node": "Commit Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Respond Published",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Publish Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond Published": {
+      "main": [
+        [
+          {
+            "node": "Archive Published Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Archive Published Draft": {
+      "main": [
+        [
+          {
+            "node": "Wait For Deployment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait For Deployment": {
+      "main": [
+        [
+          {
+            "node": "Check Live Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Live Article": {
+      "main": [
+        [
+          {
+            "node": "Verify Live Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Live Article": {
+      "main": [
+        [
+          {
+            "node": "Notify Publication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Draft Changes": {
+      "main": [
+        [
+          {
+            "node": "Confirm Draft Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Draft Update": {
+      "main": [
+        [
+          {
+            "node": "Respond Draft Updated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Drafts Webhook": {
+      "main": [
+        [
+          {
+            "node": "Authorise List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authorise List": {
+      "main": [
+        [
+          {
+            "node": "List Authorised?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Authorised?": {
+      "main": [
+        [
+          {
+            "node": "List Draft Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond List Unauthorised",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Draft Files": {
+      "main": [
+        [
+          {
+            "node": "Split Draft Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Draft Files": {
+      "main": [
+        [
+          {
+            "node": "Has Draft Files?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Draft Files?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Draft File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond No Drafts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Draft File": {
+      "main": [
+        [
+          {
+            "node": "Assemble Draft List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble Draft List": {
+      "main": [
+        [
+          {
+            "node": "Respond Draft List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Draft Webhook": {
+      "main": [
+        [
+          {
+            "node": "Authorise Detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authorise Detail": {
+      "main": [
+        [
+          {
+            "node": "Detail Authorised?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detail Authorised?": {
+      "main": [
+        [
+          {
+            "node": "Extract Requested Slug",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Detail Unauthorised",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Requested Slug": {
+      "main": [
+        [
+          {
+            "node": "Slug Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slug Valid?": {
+      "main": [
+        [
+          {
+            "node": "Read Single Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Bad Slug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Single Draft": {
+      "main": [
+        [
+          {
+            "node": "Prepare Draft Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Draft Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Draft Detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "timezone": "Africa/Accra"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "signalnest": {
+      "purpose": "Serve the editorial review API and publish approved drafts to GitHub. Refuses any request without a valid token and a publishable, explicitly approved draft.",
+      "requires": [
+        "GITHUB_TOKEN",
+        "GITHUB_OWNER",
+        "GITHUB_REPO",
+        "GITHUB_BRANCH",
+        "APPROVAL_SHARED_SECRET",
+        "SITE_URL",
+        "ADMIN_ORIGIN",
+        "TELEGRAM_CHAT_ID"
+      ],
+      "publishesNothing": false,
+      "gate": "approved === true is set server-side from a verified request; never read from the client"
+    }
+  },
+  "tags": [],
+  "active": false
+}

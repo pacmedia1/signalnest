@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="Strategic balance and structured enterprise capital growth">
+  
+  <defs>
+    <linearGradient id="primaryGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F28C28"/>
+      <stop offset="100%" stop-color="#FF9F43"/>
+    </linearGradient>
+    <linearGradient id="warmGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#E65100"/>
+      <stop offset="50%" stop-color="#F28C28"/>
+      <stop offset="100%" stop-color="#FFB74D"/>
+    </linearGradient>
+    <linearGradient id="darkBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#171717"/>
+      <stop offset="60%" stop-color="#1e1814"/>
+      <stop offset="100%" stop-color="#14110e"/>
+    </linearGradient>
+    <radialGradient id="radialAmber" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF9F43" stop-opacity="0.5"/>
+      <stop offset="60%" stop-color="#F28C28" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#171717" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cornerGlow" cx="80%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#FF9F43" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#171717" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#darkBg)"/>
+  <circle cx="580" cy="380" r="370" fill="url(#radialAmber)"/>
+  <!-- Isometric stepped platform base -->
+  <polygon points="600,640 920,480 600,320 280,480" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.16)" stroke-width="1.5"/>
+  <polygon points="600,560 840,440 600,320 360,440" fill="rgba(242,140,40,0.1)" stroke="rgba(242,140,40,0.3)" stroke-width="2"/>
+  <polygon points="600,480 760,400 600,320 440,400" fill="rgba(255,255,255,0.08)" stroke="rgba(255,159,67,0.4)" stroke-width="2"/>
+  <!-- Central monolithic beacon -->
+  <polygon points="560,420 560,180 600,150 600,390" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+  <polygon points="600,150 640,180 640,420 600,390" fill="url(#primaryGrad)" stroke="rgba(255,159,67,0.6)" stroke-width="2" filter="url(#softGlow)"/>
+  <polygon points="560,180 600,150 640,180 600,210" fill="#FFF7ED"/>
+  <!-- Floating balanced spheres -->
+  <circle cx="440" cy="280" r="32" fill="url(#primaryGrad)" filter="url(#softGlow)"/>
+  <circle cx="760" cy="280" r="28" fill="rgba(255,255,255,0.12)" stroke="rgba(255,159,67,0.5)" stroke-width="2"/>
+  <circle cx="600" cy="110" r="16" fill="#FFF7ED" filter="url(#softGlow)"/>
+  <circle cx="340" cy="420" r="12" fill="#FF9F43"/>
+  <circle cx="860" cy="420" r="14" fill="#F28C28"/>
+</svg>

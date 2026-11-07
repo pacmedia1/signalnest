@@ -1,0 +1,52 @@
+name: SignalNest CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No `npm install`: the project has zero dependencies by design.
+      - name: Regenerate and validate n8n workflows
+        run: node scripts/build-workflows.js
+
+      - name: Validate content
+        run: node scripts/validate-content.js
+
+      - name: Build site
+        run: node scripts/build.js
+
+      - name: Run test suite
+        run: node scripts/test-suite.js
+
+      - name: Check links, assets and alt text
+        run: node scripts/check-links.js
+
+      - name: Assert no secrets in tracked files
+        run: |
+          if git grep -nE 'github_pat_|AIza[0-9A-Za-z_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY' -- . ':!*.example' ':!docs/*' ':!README.md'; then
+            echo "::error::Possible credential committed to the repository."
+            exit 1
+          fi
+          echo "No credential patterns found."
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

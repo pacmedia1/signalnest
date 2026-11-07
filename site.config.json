@@ -1,0 +1,78 @@
+{
+  "siteName": "SignalNest",
+  "tagline": "Clear signal. Useful knowledge.",
+  "description": "SignalNest publishes original, human-reviewed guides on technology, AI, education, business, digital skills, software and practical internet knowledge.",
+  "url": "https://signalnestnews.vercel.app",
+  "locale": "en",
+  "language": "en",
+  "publisherLogo": "/assets/images/logo.svg",
+  "defaultOgImage": "/assets/images/og-default.svg",
+  "twitterHandle": "",
+  "author": {
+    "name": "SignalNest Editorial",
+    "url": "/about",
+    "sameAs": []
+  },
+  "nav": [
+    { "label": "Home", "href": "/" },
+    { "label": "Technology & AI", "href": "/categories/technology-ai" },
+    { "label": "Education & Careers", "href": "/categories/education" },
+    { "label": "Business & Finance", "href": "/categories/business" },
+    { "label": "Digital Lifestyle", "href": "/categories/lifestyle" },
+    { "label": "Digital Skills", "href": "/categories/digital-skills" },
+    { "label": "Software & Tutorials", "href": "/categories/software-tutorials" },
+    { "label": "Internet Trends", "href": "/categories/internet-trends" }
+  ],
+  "footerLinks": [
+    { "label": "About", "href": "/about" },
+    { "label": "Contact", "href": "/contact" },
+    { "label": "Editorial Policy", "href": "/legal/editorial-policy" },
+    { "label": "Privacy Policy", "href": "/legal/privacy" },
+    { "label": "Cookie Notice", "href": "/legal/cookies" },
+    { "label": "Terms", "href": "/legal/terms" },
+    { "label": "Affiliate Disclosure", "href": "/legal/affiliate-disclosure" },
+    { "label": "Sitemap", "href": "/sitemap.xml" }
+  ],
+  "social": [],
+  "socialPlaceholders": {
+    "note": "Populate this array with real profile URLs only. Empty = nothing is rendered, no fake links.",
+    "expectedShape": { "label": "X", "href": "https://x.com/yourhandle" }
+  },
+  "pagination": { "perPage": 9 },
+  "homepage": { "featuredCount": 1, "latestCount": 6, "trendingCount": 5 },
+  "newsletter": {
+    "enabled": true,
+    "provider": "none",
+    "action": "",
+    "note": "No third-party form action is hardcoded. Set newsletter.action to your provider's real POST endpoint (e.g. MailerLite/Buttondown). While empty, the form shows a message instead of posting nowhere."
+  },
+  "analytics": {
+    "ga4MeasurementId": "",
+    "note": "Leave empty to ship zero analytics scripts. Set to G-XXXXXXXXXX when you have a real GA4 property."
+  },
+  "ads": {
+    "enabled": false,
+    "primaryNetwork": "adsense",
+    "adsense": { "client": "", "slots": { "header": "", "inArticle": "", "sidebar": "", "footer": "" } },
+    "adsterra": { "key": "", "invokeUrl": "", "placements": { "header": "", "inArticle": "", "sidebar": "", "footer": "" } },
+    "policy": {
+      "noIncentivisedClicks": true,
+      "noAutomatedTraffic": true,
+      "editorialSeparation": true,
+      "note": "Advertising is rendered in clearly labelled containers outside editorial flow. Never prompt clicks, never buy traffic, never click your own ads."
+    }
+  },
+  "gemini": {
+    "model": "gemini-2.5-flash",
+    "temperature": 0.35,
+    "maxOutputTokens": 8192,
+    "timeoutMs": 90000,
+    "maxRetries": 2,
+    "note": "Single source of truth for the model. n8n workflows read GEMINI_MODEL but this value documents the default and is validated by scripts/validate-content.js."
+  },
+  "build": {
+    "readingWordsPerMinute": 220,
+    "minWords": 700,
+    "maxRelated": 3
+  }
+}

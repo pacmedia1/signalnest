@@ -1,0 +1,120 @@
+<div class="container">
+  {{{ads.header}}}
+</div>
+
+{{#if featured}}
+<section class="section" aria-labelledby="featured-heading">
+  <div class="container">
+    <h1 class="visually-hidden">{{site.siteName}} — {{site.tagline}}</h1>
+    <div class="hero">
+      <article class="hero__card" style="--accent:{{featured.categoryAccent}}">
+        <div class="hero__media">
+          <img src="{{featured.image}}" alt="{{featured.imageAlt}}" width="1200" height="675" fetchpriority="high" decoding="async">
+        </div>
+        <div class="hero__overlay">
+          <a class="cat-chip" href="/categories/{{featured.categorySlug}}">{{featured.categoryName}}</a>
+          <h2 class="hero__title"><a href="/articles/{{featured.slug}}">{{featured.title}}</a></h2>
+          <p class="hero__excerpt">{{featured.excerpt}}</p>
+          <div class="meta">
+            <span class="meta__item"><time datetime="{{featured.publishedIso}}">{{featured.publishedLabel}}</time></span>
+            <span class="meta__item meta__dot">{{featured.readingTime}} min read</span>
+            <span class="meta__item meta__dot">{{featured.author}}</span>
+          </div>
+        </div>
+      </article>
+      <div class="hero__side" aria-label="More recent articles">
+        {{#each secondary}}{{> card}}{{/each}}
+      </div>
+    </div>
+  </div>
+</section>
+{{/if}}
+
+<section class="section section--sink" id="latest" aria-labelledby="latest-heading">
+  <div class="container">
+    <div class="section__head">
+      <h2 class="section__title" id="latest-heading">Latest articles</h2>
+      <a class="section__link" href="/search">Browse all archive →</a>
+    </div>
+    {{#if latest.length}}
+    <div class="grid grid--3">
+      {{#each latest}}{{> card}}{{/each}}
+    </div>
+    {{else}}
+    <div class="empty">
+      <h3>No published articles yet</h3>
+      <p>Articles appear here the moment an editor approves a draft. Nothing is published automatically.</p>
+    </div>
+    {{/if}}
+  </div>
+</section>
+
+<div class="container">
+  {{{ads.inArticle}}}
+</div>
+
+<section class="section" aria-labelledby="trending-heading">
+  <div class="container">
+    <div class="grid grid--2">
+      <div>
+        <div class="section__head">
+          <h2 class="section__title" id="trending-heading">Trending topics</h2>
+        </div>
+        <ol class="trend-list">
+          {{#each trending}}{{> trend-item}}{{/each}}
+        </ol>
+      </div>
+      <div>
+        <div class="section__head">
+          <h2 class="section__title">Explore categories</h2>
+        </div>
+        <div class="cat-tiles">
+          {{#each categories}}
+          <a class="cat-tile" href="/categories/{{slug}}" style="--accent:{{accent}}">
+            {{#if image}}<div style="aspect-ratio:16/9;border-radius:var(--radius-sm);overflow:hidden;background:#171717;margin-bottom:8px;border:1px solid var(--line)"><img src="{{image}}" alt="{{name}} category cover" loading="lazy" width="320" height="180" style="width:100%;height:100%;object-fit:cover"></div>{{/if}}
+            <span class="cat-tile__count">{{count}} {{countLabel}}</span>
+            <span class="cat-tile__name">{{name}}</span>
+            <span class="cat-tile__desc">{{shortDescription}}</span>
+          </a>
+          {{/each}}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--sink">
+  <div class="container">
+    <div class="newsletter">
+      <h2>Get one useful guide every week</h2>
+      <p>Actionable, human-verified insights on technology, learning, and online opportunities. No hype, no automated spam, unsubscribe in one click.</p>
+      <form class="newsletter-form" data-newsletter-form novalidate>
+        <label class="visually-hidden" for="newsletter-email">Email address</label>
+        <input type="email" id="newsletter-email" name="email" placeholder="you@example.com" autocomplete="email" required>
+        <button type="submit">Subscribe</button>
+      </form>
+      <p class="newsletter__status" role="status" aria-live="polite" data-newsletter-status></p>
+      <p class="newsletter__note" data-newsletter-note>We store your address solely to transmit the newsletter. Read our <a href="/legal/privacy" style="color:#171717;text-decoration:underline;font-weight:700">Privacy Policy</a>.</p>
+    </div>
+  </div>
+</section>
+
+{{#if searchEnabled}}
+<section class="section" aria-labelledby="home-search-heading">
+  <div class="container container--narrow text-center">
+    <h2 class="section__title" id="home-search-heading" style="justify-content:center">Search SignalNest</h2>
+    <form class="search-form" role="search" action="/search" method="get" data-home-search style="margin:20px auto 0">
+      <div class="search-form__field">
+        <span class="search-form__icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+        </span>
+        <label class="visually-hidden" for="home-search-input">Search articles</label>
+        <input type="search" id="home-search-input" name="q" placeholder="Search AI, cash flow, static sites, study plans…">
+      </div>
+      <button type="submit">Search</button>
+    </form>
+  </div>
+</section>
+{{/if}}
+
+<div class="container">{{{ads.footer}}}</div>

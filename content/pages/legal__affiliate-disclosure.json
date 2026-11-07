@@ -1,0 +1,8 @@
+{
+  "path": "legal/affiliate-disclosure",
+  "title": "Affiliate Disclosure",
+  "description": "How affiliate links work on SignalNest and how they affect (and do not affect) our recommendations.",
+  "heading": "Affiliate Disclosure",
+  "body": "<p>Some links on this site are affiliate links. If you follow one and make a purchase, the seller may pay us a commission. The price you pay is the same.</p>\n<h2>How this affects our writing</h2>\n<p>It does not change what we recommend. We do not accept payment to include a product, to give a positive verdict, or to remove criticism. When a product is a poor fit we say so, and when we have not tested something we say that too.</p>\n<h2>How you can tell</h2>\n<p>Affiliate links are marked in the article where they appear, and this disclosure is linked from the footer of every page. Outbound commercial links carry <code>rel=\"nofollow sponsored\"</code> where appropriate.</p>\n<h2>Advertising is separate</h2>\n<p>Display advertising is sold separately and is always labelled. Advertisers do not see articles before publication and cannot request changes.</p>\n<h2>Your choice</h2>\n<p>You are never required to use our links. If you prefer, search for the product yourself; the article's advice stands either way.</p>\n<h2>Configuration required before launch</h2>\n<p>List the affiliate programmes you actually belong to, with their names. Do not list programmes you have not joined.</p>",
+  "updatedAt": "2026-11-05T00:00:00Z"
+}

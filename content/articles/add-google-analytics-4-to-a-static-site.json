@@ -1,0 +1,123 @@
+{
+  "slug": "add-google-analytics-4-to-a-static-site",
+  "title": "How to Add GA4 to a Static Site Without Slowing It Down",
+  "description": "A practical, framework-free way to add GA4 to a static site: one deferred tag, gated by configuration, with consent handled and duplicate-counting avoided.",
+  "status": "published",
+  "approved": true,
+  "approvedBy": "editor@signalnest.example",
+  "approvedAt": "2026-11-04T07:00:00Z",
+  "category": "software-tutorials",
+  "tags": [
+    "analytics",
+    "static sites",
+    "performance",
+    "privacy"
+  ],
+  "keywords": [
+    "google analytics 4 static site",
+    "ga4 measurement id",
+    "analytics consent mode",
+    "gtag async"
+  ],
+  "author": "SignalNest Editorial",
+  "reviewer": "Christian Agbodzi",
+  "publishedAt": "2026-11-04T07:00:00Z",
+  "updatedAt": null,
+  "heroImage": "/assets/images/articles/add-google-analytics-4-to-a-static-site/featured.svg",
+  "heroImageAlt": "Editorial visual representation of How to Add GA4 to a Static Site Without Slowing It Down focusing on analytics",
+  "heroImageCaption": "Conceptual overview: analytics in perspective.",
+  "content": "<p>Adding analytics to a static site is a good test of restraint: the same file that tells you how readers behave can also make the site slower and put you on the wrong side of a privacy rule. This guide covers the version that is worth shipping: one small, deferred script, consent respected, and no dependency on a framework.</p>\n\n<h2>Start with the question you want answered</h2>\n<p>Analytics is only useful if it changes a decision. Before adding a tag, write down the two or three questions you actually need answered. For most independent publishers that list is short: which articles get read, where readers arrive from, and which pages lose attention. Everything else is decoration until you have traffic worth segmenting.</p>\n\n<h2>Create the GA4 property and copy the measurement ID</h2>\n<p>In the Google Analytics admin area, create a property, then add a web data stream for your domain. The data stream gives you a measurement ID that looks like <code>G-XXXXXXXXXX</code>. That ID is public by design. It is not a secret and does not need hiding in a build variable, though keeping it in configuration rather than scattered through templates will save you later.</p>\n<p>Official reference: <a href=\"https://developers.google.com/analytics/devguides/collection/ga4\" rel=\"nofollow noopener noreferrer\" target=\"_blank\">Google Analytics 4 developer documentation</a>.</p>\n\n<h2>Add the tag once, not on every page</h2>\n<p>If your site is generated from a shared layout, put the tag in the layout and nowhere else. Two copies of the same tag double-count page views and make every report wrong, and the error is invisible in the interface because nothing looks broken.</p>\n<p>The minimum markup is the loader plus a single configuration call:</p>\n<pre><code>&lt;script async src=\"https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX\"&gt;&lt;/script&gt;\n&lt;script&gt;\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){ dataLayer.push(arguments); }\n  gtag('js', new Date());\n  gtag('config', 'G-XXXXXXXXXX', { anonymize_ip: true });\n&lt;/script&gt;</code></pre>\n<p>Both lines belong in the document head. The <code>async</code> attribute matters: without it the browser may block rendering while it waits for a third-party host, which is the single most common way analytics damages a fast site.</p>\n\n<h2>Make the tag conditional</h2>\n<p>An analytics tag you cannot switch off is a liability. Gate it on configuration so that an empty value produces no script at all:</p>\n<pre><code>{% if site.analytics.ga4MeasurementId %}\n  &lt;script async src=\"https://www.googletagmanager.com/gtag/js?id=...\"&gt;&lt;/script&gt;\n{% endif %}</code></pre>\n<p>This single decision pays off three times: local development stops polluting your reports, a preview deployment stops double-counting, and a future decision to remove analytics becomes a one-line change rather than an archaeology project.</p>\n\n<h2>Respect consent where consent is required</h2>\n<p>If your readers are in a jurisdiction that requires prior consent for analytics cookies, do not load the tag until consent is given. Google publishes the mechanics for consent mode, including how to signal a denied state before the tag loads. Loading first and asking later does not satisfy a prior-consent requirement.</p>\n<p>Reference: <a href=\"https://developers.google.com/tag-platform/security/guides/consent\" rel=\"nofollow noopener noreferrer\" target=\"_blank\">Consent mode documentation</a>.</p>\n\n<h2>Keep the tag out of the critical path</h2>\n<p>Check the result rather than assume it. Load your page in PageSpeed Insights and look at total blocking time and main-thread work. A correctly added tag contributes network activity but should not add blocking time. If it does, the usual cause is a second copy of the tag inserted by a template partial, or a tag manager container loading more scripts than you think.</p>\n<p>Test tool: <a href=\"https://pagespeed.web.dev/\" rel=\"nofollow noopener noreferrer\" target=\"_blank\">PageSpeed Insights</a>.</p>\n\n<h2>Verify with realtime, not with hope</h2>\n<p>Open the realtime report, then open your site in a fresh tab on a different device. You should see one active user and one page view. Reload once and confirm the count moves by one, not by two. That two-minute check catches the duplicate-tag problem before it contaminates months of data.</p>\n\n<h2>What not to send</h2>\n<p>Do not send personal data to analytics. Do not push email addresses, names, or anything that identifies a person into event parameters. Do not attempt to measure individual readers across sites. Beyond the legal exposure, it makes the data less trustworthy, because the numbers stop describing behaviour and start describing a compliance incident.</p>\n\n<h2>A sane starting configuration</h2>\n<ul>\n<li>Enhanced measurement on, so outbound clicks and file downloads are counted without custom code.</li>\n<li>Internal traffic filtered by IP for the office or home connection you publish from.</li>\n<li>One custom event for the only interaction that matters to your business, for example a newsletter signup.</li>\n<li>Data retention set deliberately, not left on the default without a decision.</li>\n</ul>\n\n<h2>Bottom line</h2>\n<p>A static site should stay static. Analytics belongs on top as a small, conditional, deferred extra that you can remove in one edit. If the tag ever becomes load-bearing for how the site renders, something has gone wrong and the fix is to move it back out of the critical path.</p>",
+  "sources": [
+    {
+      "title": "Google Analytics 4 developer documentation",
+      "url": "https://developers.google.com/analytics/devguides/collection/ga4",
+      "publisher": "Google",
+      "accessedAt": "2026-11-04T00:00:00Z"
+    },
+    {
+      "title": "Consent mode for Google tags",
+      "url": "https://developers.google.com/tag-platform/security/guides/consent",
+      "publisher": "Google",
+      "accessedAt": "2026-11-04T00:00:00Z"
+    },
+    {
+      "title": "PageSpeed Insights",
+      "url": "https://pagespeed.web.dev/",
+      "publisher": "Google",
+      "accessedAt": "2026-11-04T00:00:00Z"
+    }
+  ],
+  "verification": [
+    "Menu paths in the Google Analytics admin interface change between releases",
+    "Whether prior consent is legally required depends on your jurisdiction"
+  ],
+  "featured": true,
+  "excerpt": "A practical, framework-free way to add GA4 to a static site: one deferred tag, gated by configuration, with consent handled and duplicate-counting avoided.",
+  "generation": {
+    "model": "gemini-2.5-flash",
+    "generatedAt": "2026-11-04T07:00:00Z",
+    "topicId": "seed",
+    "promptVersion": "1.0"
+  },
+  "editorial": {
+    "notes": "Seed article, human-written and reviewed. Replace or keep.",
+    "revision": 1
+  },
+  "supportingImage1": "/assets/images/articles/add-google-analytics-4-to-a-static-site/supporting1.svg",
+  "supportingImage1Alt": "Diagram illustrating script and key workflow components",
+  "supportingImage1Caption": "Core mechanics: breakdown of script.",
+  "supportingImage2": "/assets/images/articles/add-google-analytics-4-to-a-static-site/supporting2.svg",
+  "supportingImage2Alt": "Visual synthesis depicting consent and implementation results",
+  "supportingImage2Caption": "Synthesis and outcomes: practical impact of consent.",
+  "images": [
+    {
+      "index": 1,
+      "type": "featured",
+      "role": "Hero cover image",
+      "concept": "analytics",
+      "url": "/assets/images/articles/add-google-analytics-4-to-a-static-site/featured.svg",
+      "alt": "Editorial visual representation of How to Add GA4 to a Static Site Without Slowing It Down focusing on analytics",
+      "caption": "Conceptual overview: analytics in perspective.",
+      "provider": "editorial-svg",
+      "style": "abstract-editorial",
+      "sizeBytes": 3401,
+      "verified": true
+    },
+    {
+      "index": 2,
+      "type": "supporting1",
+      "role": "Supporting methodology diagram",
+      "concept": "script",
+      "url": "/assets/images/articles/add-google-analytics-4-to-a-static-site/supporting1.svg",
+      "alt": "Diagram illustrating script and key workflow components",
+      "caption": "Core mechanics: breakdown of script.",
+      "provider": "editorial-svg",
+      "style": "abstract-editorial",
+      "sizeBytes": 3489,
+      "verified": true
+    },
+    {
+      "index": 3,
+      "type": "supporting2",
+      "role": "Supporting synthesis & implementation",
+      "concept": "consent",
+      "url": "/assets/images/articles/add-google-analytics-4-to-a-static-site/supporting2.svg",
+      "alt": "Visual synthesis depicting consent and implementation results",
+      "caption": "Synthesis and outcomes: practical impact of consent.",
+      "provider": "editorial-svg",
+      "style": "abstract-editorial",
+      "sizeBytes": 3376,
+      "verified": true
+    }
+  ],
+  "visuallyComplete": true,
+  "visualIdentity": {
+    "provider": "editorial-svg",
+    "style": "abstract-editorial",
+    "accent": "#F28C28",
+    "secondaryAccent": "#FF9F43",
+    "darkBg": "#171717",
+    "lightBg": "#FFF7ED",
+    "generatedAt": "2026-11-07T06:11:04.855Z"
+  }
+}

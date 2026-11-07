@@ -1,0 +1,116 @@
+{
+  "slug": "retrieval-augmented-generation-architecture",
+  "title": "A Guide to Retrieval-Augmented Generation Systems",
+  "description": "How retrieval-augmented generation connects real data to language models: chunking strategies, vector search trade-offs, and verification guards.",
+  "status": "published",
+  "approved": true,
+  "approvedBy": "editor@signalnest.example",
+  "approvedAt": "2026-11-06T08:00:00Z",
+  "category": "technology-ai",
+  "tags": [
+    "ai",
+    "rag",
+    "architecture",
+    "engineering"
+  ],
+  "keywords": [
+    "retrieval augmented generation",
+    "rag architecture",
+    "vector search",
+    "chunking strategies"
+  ],
+  "author": "SignalNest Editorial",
+  "reviewer": "Christian Agbodzi",
+  "publishedAt": "2026-11-06T08:00:00Z",
+  "updatedAt": null,
+  "heroImage": "/assets/images/articles/retrieval-augmented-generation-architecture/featured.svg",
+  "heroImageAlt": "Editorial visual representation of A Guide to Retrieval-Augmented Generation Systems focusing on retrieval",
+  "heroImageCaption": "Conceptual overview: retrieval in perspective.",
+  "supportingImage1": "/assets/images/articles/retrieval-augmented-generation-architecture/supporting1.svg",
+  "supportingImage1Alt": "Diagram illustrating context and key workflow components",
+  "supportingImage1Caption": "Core mechanics: breakdown of context.",
+  "supportingImage2": "/assets/images/articles/retrieval-augmented-generation-architecture/supporting2.svg",
+  "supportingImage2Alt": "Visual synthesis depicting model and implementation results",
+  "supportingImage2Caption": "Synthesis and outcomes: practical impact of model.",
+  "images": [
+    {
+      "index": 1,
+      "type": "featured",
+      "role": "Hero cover image",
+      "concept": "retrieval",
+      "url": "/assets/images/articles/retrieval-augmented-generation-architecture/featured.svg",
+      "alt": "Editorial visual representation of A Guide to Retrieval-Augmented Generation Systems focusing on retrieval",
+      "caption": "Conceptual overview: retrieval in perspective.",
+      "provider": "editorial-svg",
+      "style": "abstract-editorial",
+      "sizeBytes": 3395,
+      "verified": true
+    },
+    {
+      "index": 2,
+      "type": "supporting1",
+      "role": "Supporting methodology diagram",
+      "concept": "context",
+      "url": "/assets/images/articles/retrieval-augmented-generation-architecture/supporting1.svg",
+      "alt": "Diagram illustrating context and key workflow components",
+      "caption": "Core mechanics: breakdown of context.",
+      "provider": "editorial-svg",
+      "style": "abstract-editorial",
+      "sizeBytes": 3484,
+      "verified": true
+    },
+    {
+      "index": 3,
+      "type": "supporting2",
+      "role": "Supporting synthesis & implementation",
+      "concept": "model",
+      "url": "/assets/images/articles/retrieval-augmented-generation-architecture/supporting2.svg",
+      "alt": "Visual synthesis depicting model and implementation results",
+      "caption": "Synthesis and outcomes: practical impact of model.",
+      "provider": "editorial-svg",
+      "style": "abstract-editorial",
+      "sizeBytes": 3368,
+      "verified": true
+    }
+  ],
+  "visuallyComplete": true,
+  "visualIdentity": {
+    "provider": "editorial-svg",
+    "style": "abstract-editorial",
+    "accent": "#F28C28",
+    "secondaryAccent": "#FF9F43",
+    "darkBg": "#171717",
+    "lightBg": "#FFF7ED",
+    "generatedAt": "2026-11-07T06:11:04.882Z"
+  },
+  "content": "<p>Language models are powerful reasoning engines, but they are bounded by their training cutoff and prone to confident hallucinations when asked about private documents, regulatory updates, or rapidly changing facts. Retrieval-augmented generation addresses this problem directly by fetching authoritative passages from a database and injecting them into the context window before the model answers.</p>\n\n<h2>The fundamental anatomy of a retrieval pipeline</h2>\n<p>Every dependable retrieval system divides into two separate operational phases: ingestion and query processing. During ingestion, source documents are extracted, cleaned, partitioned into logical text chunks, converted into dense numerical embeddings, and stored within an index. At query time, a user query generates a search vector that retrieves the most semantically relevant passages, which are then passed alongside system instructions to the generation model.</p>\n<p>Keeping ingestion decoupled from generation is critical for system durability. If the database update process is coupled tightly to user requests, latency degrades rapidly under high traffic. By running document parsing and vector indexing as asynchronous background workflows, the user-facing retrieval path remains predictable and lightweight. When background workers fail or encounter malformed PDFs, user search availability is never compromised.</p>\n\n<h2>Document chunking and context preservation</h2>\n<p>The single most influential design choice in retrieval performance is document chunking. Splitting text arbitrarily by character count routinely cuts sentences in half, severing nouns from their modifying clauses and destroying semantic coherence. A superior baseline splits content by markdown headings, code blocks, or semantic paragraphs, maintaining between 300 and 600 tokens per passage with a modest 10 to 15 percent overlap.</p>\n<p>When passages are too small, they lack the surrounding context necessary for the language model to synthesize an accurate answer. Conversely, when chunks are excessively long, irrelevant information dilutes the similarity score, causing high-value records to drop off the retrieval shortlist. Testing chunking parameters against representative benchmark queries is an essential preliminary step. High-performing systems store parent document metadata alongside child chunks, allowing the synthesizer to inspect surrounding headings when ambiguity arises.</p>\n\n<h2>Hybrid search versus dense vector indexing</h2>\n<p>Dense vector search excels at conceptual matching, discovering passages that address the intent of a query even when different terminology is used. However, pure vector search frequently struggles with exact entity lookups, SKU numbers, product identifiers, and specialized acronyms. When a user queries a specific technical specification or legal clause identifier, lexical precision matters far more than conceptual proximity.</p>\n<p>Production architectures routinely combine BM25 keyword matching with dense vector retrieval using reciprocal rank fusion. This hybrid approach scores candidates from both lexical and semantic pipelines, guaranteeing that exact keyword matches remain visible while conceptual context is preserved. Implementing a lightweight re-ranking model further refines top candidates before prompt compilation, ensuring that only the most dense and pertinent paragraphs reach the synthesis stage.</p>\n\n<h2>Query rewriting and multi-query expansion</h2>\n<p>User queries in production environments are rarely formulated as optimal search vectors. Users ask conversational questions, use internal slang, or omit crucial domain terminology. Query rewriting addresses this mismatch by passing the initial prompt through a fast, lightweight language model that extracts search intent, expands synonyms, and generates multiple parallel sub-queries.</p>\n<p>For example, a vague inquiry regarding annual rate increases can be systematically decomposed into separate searches targeting corporate billing schedules, enterprise contract clauses, and statutory adjustments. Gathering top hits across these sub-queries produces a significantly more comprehensive context dossier than relying on a single raw vector lookup.</p>\n\n<h2>Prompt grounding and citation attribution</h2>\n<p>Injecting retrieved context is insufficient if the language model is not strictly instructed on how to utilize it. The system prompt must explicitly enforce grounding: the model should only answer using the provided reference passages, explicitly decline to answer when context is insufficient, and cite the source identifier for every factual assertion made in the output.</p>\n<p>Requiring passage citations transforms model generation from an opaque black box into an auditable document. When an answer includes verifiable reference links, end users and human editors can inspect source documents immediately, isolating retrieval failures from generative hallucinations. If an answer asserts a numerical benchmark, the corresponding footnote must match the ingested source text verbatim.</p>\n\n<h2>Evaluation metrics and continuous monitoring</h2>\n<p>A retrieval system cannot be improved without deterministic measurement. Three core metrics determine pipeline health: context relevance (the proportion of retrieved chunks that are actually relevant to the query), groundedness (the degree to which the generated answer is supported by the context), and answer relevance (how directly the synthesis satisfies the user prompt).</p>\n<p>Monitoring these three signals over time exposes when document ingestion rules are deteriorating or when shifts in user query patterns require updated index schemas. Automated regression tests run against a curated evaluation dataset ensure that prompt modifications, chunking adjustments, or embedding model upgrades do not silently degrade output fidelity. By evaluating retrieval independently from synthesis, engineering teams isolate indexing defects before they contaminate production responses.</p>",
+  "sources": [
+    {
+      "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+      "url": "https://arxiv.org/abs/2005.11401",
+      "publisher": "Cornell University",
+      "accessedAt": "2026-11-06T00:00:00Z"
+    },
+    {
+      "title": "Google Cloud Architecture Center: Generative AI Retrieval",
+      "url": "https://cloud.google.com/architecture",
+      "publisher": "Google Cloud",
+      "accessedAt": "2026-11-06T00:00:00Z"
+    }
+  ],
+  "verification": [
+    "Embedding dimensionality varies across models and cannot be mixed in the same index space",
+    "Chunk size trade-offs depend on document structure and average query complexity"
+  ],
+  "featured": false,
+  "generation": {
+    "model": "gemini-2.5-flash",
+    "generatedAt": "2026-11-06T08:00:00Z",
+    "topicId": "tech-rag-guide",
+    "promptVersion": "1.2"
+  },
+  "editorial": {
+    "notes": "Reviewed and verified technical architecture claims against official papers.",
+    "revision": 1
+  }
+}

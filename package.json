@@ -1,0 +1,19 @@
+{
+  "name": "signalnest",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SignalNest - AI-assisted editorial publishing platform (static, zero runtime dependencies)",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/build.js && node scripts/dev-server.js",
+    "validate": "node scripts/validate-content.js",
+    "links": "node scripts/check-links.js",
+    "workflows": "node scripts/build-workflows.js",
+    "test": "node scripts/build.js && node scripts/validate-content.js && node scripts/build-workflows.js && node scripts/test-suite.js && node scripts/check-links.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="Futuristic geometric refractive glass prism dispersing algorithmic light">
+  
+  <defs>
+    <linearGradient id="primaryGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F28C28"/>
+      <stop offset="100%" stop-color="#FF9F43"/>
+    </linearGradient>
+    <linearGradient id="warmGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#E65100"/>
+      <stop offset="50%" stop-color="#F28C28"/>
+      <stop offset="100%" stop-color="#FFB74D"/>
+    </linearGradient>
+    <linearGradient id="darkBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#171717"/>
+      <stop offset="60%" stop-color="#1e1814"/>
+      <stop offset="100%" stop-color="#14110e"/>
+    </linearGradient>
+    <radialGradient id="radialAmber" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FF9F43" stop-opacity="0.5"/>
+      <stop offset="60%" stop-color="#F28C28" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#171717" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cornerGlow" cx="80%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#FF9F43" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#171717" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#darkBg)"/>
+  <circle cx="550" cy="400" r="400" fill="url(#radialAmber)"/>
+  <!-- Isometric glass prism -->
+  <polygon points="600,140 850,280 850,560 600,420" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+  <polygon points="600,140 350,280 350,560 600,420" fill="rgba(242,140,40,0.18)" stroke="rgba(255,159,67,0.5)" stroke-width="2"/>
+  <polygon points="350,560 600,420 850,560 600,700" fill="rgba(23,23,23,0.7)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+  <!-- Light beams traversing through prism -->
+  <path d="M 100 380 L 480 350 L 720 280 L 1100 180" fill="none" stroke="url(#primaryGrad)" stroke-width="6" opacity="0.9" filter="url(#softGlow)"/>
+  <path d="M 100 400 L 480 350 L 750 380 L 1100 340" fill="none" stroke="#FF9F43" stroke-width="4" opacity="0.8"/>
+  <path d="M 100 420 L 480 350 L 780 480 L 1100 520" fill="none" stroke="#F28C28" stroke-width="5" opacity="0.85" filter="url(#softGlow)"/>
+  <!-- Internal floating refractions -->
+  <circle cx="480" cy="350" r="16" fill="#FFF7ED" filter="url(#softGlow)"/>
+  <circle cx="720" cy="280" r="12" fill="#FF9F43"/>
+  <circle cx="750" cy="380" r="10" fill="#FFF7ED"/>
+  <circle cx="780" cy="480" r="14" fill="#F28C28"/>
+</svg>

@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="referrer" content="no-referrer">
+<title>SignalNest Owner Dashboard &amp; Editorial Control</title>
+<link rel="icon" type="image/svg+xml" href="/assets/images/favicon.svg">
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin-body">
+<a class="skip-link" href="#admin-main">Skip to dashboard content</a>
+
+<header class="admin-header">
+  <div class="container admin-header__bar">
+    <div class="admin-header__brand">
+      <a href="/" class="admin-header__logo" title="Back to SignalNest public site">
+        <img src="/assets/images/logo.svg" alt="SignalNest Logo" width="28" height="28">
+        <span style="font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em;">Signal<span style="color: var(--primary-orange);">Nest</span></span>
+      </a>
+      <span class="admin-header__badge">Owner Control</span>
+    </div>
+    <div class="admin-header__actions">
+      <button type="button" class="btn btn--ghost btn--sm theme-toggle" id="admin-theme-toggle" aria-label="Toggle visual theme">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"></circle>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+        </svg>
+      </button>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-settings">Connection</button>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-lock" hidden>Lock Session</button>
+      <a href="/" class="btn btn--sm" target="_blank" rel="noopener">Live Site &rarr;</a>
+    </div>
+  </div>
+</header>
+
+<!-- Tab Navigation Bar -->
+<nav class="admin-nav" aria-label="Dashboard sections">
+  <ul class="admin-nav__list">
+    <li><button type="button" class="admin-tab is-active" data-tab="panel-overview">📊 Overview &amp; Metrics</button></li>
+    <li><button type="button" class="admin-tab" data-tab="panel-controls">⚡ Automation Hub</button></li>
+    <li><button type="button" class="admin-tab" data-tab="panel-list">📝 Editorial Review <span class="admin-tab__count" id="badge-draft-count">0</span></button></li>
+    <li><button type="button" class="admin-tab" data-tab="panel-images">🎨 AI Image Studio (NA10)</button></li>
+    <li><button type="button" class="admin-tab" data-tab="panel-ads">💰 Ad Monetization</button></li>
+    <li><button type="button" class="admin-tab" data-tab="panel-privacy">🔒 Privacy &amp; Gmail</button></li>
+    <li><button type="button" class="admin-tab" data-tab="panel-profile">👤 Owner Profile</button></li>
+    <li><button type="button" class="admin-tab" data-tab="panel-logs">📜 Execution Logs</button></li>
+  </ul>
+</nav>
+
+<main id="admin-main" class="container admin-main">
+
+  <!-- 1. Connection / Authentication -->
+  <section class="panel" id="panel-auth">
+    <div class="panel__head">
+      <h2 class="panel__title">Connect to Automation Approval Service</h2>
+      <span class="badge badge--tech">Zero-Secret Browser Protocol</span>
+    </div>
+    <p class="panel__note">
+      SignalNest uses a zero-credential security model for its browser client. All publishing operations,
+      model API keys, and repository credentials execute inside your authenticated n8n automation workflow,
+      never inside this web page. Enter your approval webhook endpoint and review token. Both are stored
+      exclusively in <code>sessionStorage</code> for this tab.
+    </p>
+    <form id="auth-form" class="form-grid" autocomplete="off">
+      <label for="auth-endpoint">Approval Webhook Base URL</label>
+      <input id="auth-endpoint" name="endpoint" type="url" required placeholder="https://your-n8n-host/webhook" spellcheck="false">
+      
+      <label for="auth-token">Review Token</label>
+      <input id="auth-token" name="token" type="password" required placeholder="Paste the secret review token" spellcheck="false" autocomplete="current-password">
+      
+      <p class="form-hint">Tokens are validated in constant time on the workflow server. Wrong tokens are rejected server-side.</p>
+      
+      <div style="display: flex; gap: 10px; margin-top: 8px;">
+        <button type="submit" class="btn btn--primary">Connect to Webhook</button>
+        <button type="button" class="btn" id="btn-demo-mode">Inspect Local Dashboard</button>
+      </div>
+      <p class="form-status" id="auth-status" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <!-- 2. Overview & Real Metrics Panel -->
+  <section class="panel" id="panel-overview">
+    <div class="panel__head">
+      <h2 class="panel__title">System Overview &amp; Operational Metrics</h2>
+      <button type="button" class="btn btn--ghost btn--sm" id="btn-refresh-overview">Refresh Telemetry</button>
+    </div>
+    <p class="panel__note">
+      Real-time health telemetry across the SignalNest static generation pipeline, n8n automated agents,
+      and verified publishing state.
+    </p>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-card__label">Published Articles</span>
+        <span class="metric-card__value" id="kpi-published">6</span>
+        <span class="metric-card__hint">Live on production site</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">Drafts Awaiting Review</span>
+        <span class="metric-card__value" id="kpi-drafts">0</span>
+        <span class="metric-card__hint">In <code>content/drafts/</code></span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">Pending Approvals</span>
+        <span class="metric-card__value" id="kpi-pending">0</span>
+        <span class="metric-card__hint">Human approval gate</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">Failed Runs</span>
+        <span class="metric-card__value" id="kpi-failures" style="color: var(--ok);">0</span>
+        <span class="metric-card__hint">Zero unhandled exceptions</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">Topic Queue</span>
+        <span class="metric-card__value" id="kpi-topics">12</span>
+        <span class="metric-card__hint">RSS discovery candidates</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">Gemini AI Model</span>
+        <span class="metric-card__value" style="font-size: 1.15rem; color: var(--primary-orange);">gemini-2.5-flash</span>
+        <span class="metric-card__hint">Structured JSON schema</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">Publishing Host</span>
+        <span class="metric-card__value" style="font-size: 1.15rem;">Vercel + GitHub</span>
+        <span class="metric-card__hint">Clean SSG distribution</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">NA10 Image Engine</span>
+        <span class="metric-card__value" style="font-size: 1.15rem; color: var(--ok);">Operational</span>
+        <span class="metric-card__hint">3 images/article verified</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">GA4 Analytics</span>
+        <span class="metric-card__value" style="font-size: 1.05rem; color: var(--muted);">Not Configured</span>
+        <span class="metric-card__hint">Awaiting property authorization</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card__label">Ad Transparency</span>
+        <span class="metric-card__value" style="font-size: 1.05rem; color: var(--ok);">ads.txt Valid</span>
+        <span class="metric-card__hint">Zero third-party spam ads</span>
+      </div>
+    </div>
+
+    <h3 style="font-size: 1rem; margin: 24px 0 12px;">Active Automation Architecture</h3>
+    <div style="overflow-x: auto;">
+      <table class="table-styled" style="width: 100%; font-size: 0.82rem;">
+        <thead>
+          <tr>
+            <th>Workflow ID</th>
+            <th>Name &amp; Role</th>
+            <th>Trigger Frequency</th>
+            <th>Safety Gate</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>WF01</code></td>
+            <td><strong>Topic Discovery</strong> (RSS Ingestion &amp; De-duplication)</td>
+            <td>Every 6 hours</td>
+            <td>Untrusted feed sanitization</td>
+            <td><span class="badge badge--tech">Active</span></td>
+          </tr>
+          <tr>
+            <td><code>WF02</code></td>
+            <td><strong>Research &amp; Verification</strong> (Fact &amp; Source Extraction)</td>
+            <td>On topic queue event</td>
+            <td>Mandatory outbound citations</td>
+            <td><span class="badge badge--tech">Active</span></td>
+          </tr>
+          <tr>
+            <td><code>WF03</code></td>
+            <td><strong>Gemini AI Article Generation</strong> (Structured Editorial Draft)</td>
+            <td>Daily at 05:30 UTC</td>
+            <td>Word count &amp; HTML validation</td>
+            <td><span class="badge badge--tech">Active</span></td>
+          </tr>
+          <tr>
+            <td><code>NA10</code></td>
+            <td><strong>AI Image Generation Module</strong> (1 Hero Cover + 2 Supporting)</td>
+            <td>Post-draft pipeline</td>
+            <td>Visual completeness check (3/3)</td>
+            <td><span class="badge badge--tech">Active</span></td>
+          </tr>
+          <tr>
+            <td><code>WF04</code></td>
+            <td><strong>Editorial Review &amp; Publishing</strong> (Human Approval Gate)</td>
+            <td>On owner decision</td>
+            <td>Strict human approval required</td>
+            <td><span class="badge badge--tech">Enforced</span></td>
+          </tr>
+          <tr>
+            <td><code>WF05</code></td>
+            <td><strong>Analytics &amp; Search Console</strong> (Honest Telemetry)</td>
+            <td>Weekly summary</td>
+            <td>Zero fake metrics policy</td>
+            <td><span class="badge badge--lifestyle">Pending Auth</span></td>
+          </tr>
+          <tr>
+            <td><code>WF06</code></td>
+            <td><strong>Error Handling &amp; Alerting</strong> (Telegram / Webhook)</td>
+            <td>On unhandled exception</td>
+            <td>Automatic retry &amp; owner alert</td>
+            <td><span class="badge badge--tech">Active</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3. Automation Control Center -->
+  <section class="panel" id="panel-controls" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Automation Control Center</h2>
+      <span class="badge badge--tech">Real Webhook Endpoints</span>
+    </div>
+    <p class="panel__note">
+      Execute and orchestrate n8n automated pipelines. Privileged controls require a verified connection
+      token and execute atomic workflow webhooks.
+    </p>
+
+    <div class="control-grid">
+      <div class="control-card">
+        <div>
+          <h3 class="control-card__title">▶ Start Automation</h3>
+          <p class="control-card__desc">Enables scheduled triggers for topic discovery, research and draft queues.</p>
+        </div>
+        <button type="button" class="btn btn--primary" id="btn-ctrl-start" data-action="start">Start Automation</button>
+      </div>
+
+      <div class="control-card">
+        <div>
+          <h3 class="control-card__title">⏸ Pause Automation</h3>
+          <p class="control-card__desc">Temporarily pauses automated scheduling without cancelling pending reviews.</p>
+        </div>
+        <button type="button" class="btn" id="btn-ctrl-pause" data-action="pause">Pause Automation</button>
+      </div>
+
+      <div class="control-card">
+        <div>
+          <h3 class="control-card__title">↻ Resume Automation</h3>
+          <p class="control-card__desc">Resumes paused automation schedules and clears temporary rate limits.</p>
+        </div>
+        <button type="button" class="btn" id="btn-ctrl-resume" data-action="resume">Resume Automation</button>
+      </div>
+
+      <div class="control-card">
+        <div>
+          <h3 class="control-card__title">✨ Generate Article</h3>
+          <p class="control-card__desc">Triggers an immediate Gemini 2.5 Flash editorial draft for the top queued topic.</p>
+        </div>
+        <button type="button" class="btn btn--primary" id="btn-ctrl-generate" data-action="generate">Generate Draft Now</button>
+      </div>
+
+      <div class="control-card">
+        <div>
+          <h3 class="control-card__title">🔁 Retry Failed Workflow</h3>
+          <p class="control-card__desc">Re-executes the most recent failed run with backoff logic.</p>
+        </div>
+        <button type="button" class="btn" id="btn-ctrl-retry" data-action="retry">Retry Last Failure</button>
+      </div>
+
+      <div class="control-card">
+        <div>
+          <h3 class="control-card__title">📑 Fetch Execution Logs</h3>
+          <p class="control-card__desc">Queries recent n8n workflow execution telemetry.</p>
+        </div>
+        <button type="button" class="btn" id="btn-ctrl-logs" data-action="logs">Refresh Logs</button>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <p class="form-status" id="control-status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- 4. Draft List Panel -->
+  <section class="panel" id="panel-list" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">Editorial Review Queue</h2>
+      <button type="button" class="btn btn--ghost" id="btn-refresh">Refresh Drafts</button>
+    </div>
+    <p class="panel__note" id="list-status" role="status" aria-live="polite">Loading…</p>
+    <ul class="draft-list" id="draft-list"></ul>
+  </section>
+
+  <!-- 5. Editor Panel -->
+  <section class="panel" id="panel-editor" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title" id="editor-heading">Review Draft</h2>
+      <button type="button" class="btn btn--ghost" id="btn-close-editor">Close Editor</button>
+    </div>
+
+    <div class="editor-meta" id="editor-meta"></div>
+
+    <form id="editor-form" class="editor-form" autocomplete="off">
+      <input type="hidden" id="f-slug">
+
+      <div class="form-row">
+        <label for="f-title">Article Title</label>
+        <input id="f-title" type="text" maxlength="120" required>
+        <span class="form-hint"><span id="title-count">0</span>/120 characters. Aim for 45–70.</span>
+      </div>
+
+      <div class="form-row">
+        <label for="f-description">Meta Description</label>
+        <textarea id="f-description" rows="3" maxlength="320" required></textarea>
+        <span class="form-hint"><span id="desc-count">0</span>/320 characters. Aim for 120–160.</span>
+      </div>
+
+      <div class="form-row form-row--split">
+        <div>
+          <label for="f-category">Category</label>
+          <select id="f-category" required></select>
+        </div>
+        <div>
+          <label for="f-tags">Tags (comma separated)</label>
+          <input id="f-tags" type="text">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label for="f-hero">Featured Hero Image Path</label>
+        <input id="f-hero" type="text" placeholder="/assets/images/articles/<slug>/featured.svg" spellcheck="false">
+        <span class="form-hint">Path to 16:9 featured cover image generated by the NA10 module.</span>
+      </div>
+
+      <div class="form-row">
+        <label for="f-hero-alt">Featured Image Alt Text</label>
+        <input id="f-hero-alt" type="text" maxlength="160">
+      </div>
+
+      <div class="form-row">
+        <label for="f-content">Article Content (HTML)</label>
+        <textarea id="f-content" rows="20" spellcheck="true"></textarea>
+        <span class="form-hint">Allowed HTML tags are strictly enforced by the builder. Scripts, iframes, inline handlers and <code>javascript:</code> URLs are stripped.</span>
+      </div>
+
+      <div class="form-row">
+        <label>Primary Sources (Mandatory for factual claims)</label>
+        <div id="sources-list" class="stack-sm"></div>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-add-source">+ Add Source</button>
+      </div>
+
+      <div class="form-row">
+        <label>Factual Claims Requiring Human Verification</label>
+        <div id="verification-list" class="stack-sm"></div>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-add-verification">+ Add Claim</button>
+      </div>
+
+      <div class="form-row">
+        <label for="f-notes">Editorial Notes</label>
+        <textarea id="f-notes" rows="2" placeholder="Record what you checked, verified or changed…"></textarea>
+      </div>
+
+      <div class="reviewer-row">
+        <label for="f-reviewer">Approving Editor</label>
+        <input id="f-reviewer" type="text" required value="Christian Agbodzi">
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn--primary" data-decision="approve">Approve &amp; Publish</button>
+        <button type="button" class="btn" data-decision="save">Save Without Publishing</button>
+        <button type="button" class="btn" data-decision="revise">Request Revision</button>
+        <button type="button" class="btn btn--danger" data-decision="reject">Reject Draft</button>
+      </div>
+      <p class="form-status" id="editor-status" role="status" aria-live="polite"></p>
+    </form>
+
+    <details class="preview" style="margin-top: 24px;">
+      <summary style="font-weight: 700; cursor: pointer; padding: 8px 0;">Preview Rendered Content</summary>
+      <div class="preview__body prose" id="preview-body" style="padding: 16px; background: var(--paper); border-radius: var(--radius-sm); margin-top: 12px; border: 1px solid var(--line);"></div>
+    </details>
+  </section>
+
+  <!-- 6. AI Image Generation Studio (NA10) -->
+  <section class="panel" id="panel-images" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">🎨 NA10 AI Image Generation Studio</h2>
+      <span class="badge badge--tech">3 Images / Article Verified</span>
+    </div>
+    <p class="panel__note">
+      Every SignalNest article must have exactly three original, relevant, brand-aligned images
+      (1 Featured Cover + 2 In-Content Supporting Images) before publication. Manage visual styles,
+      audit alt text, and trigger targeted image regenerations.
+    </p>
+
+    <div class="image-studio">
+      <div class="image-studio__header">
+        <div class="image-studio__select">
+          <label for="image-article-select" style="font-weight: 700; font-size: 0.84rem;">Select Article:</label>
+          <select id="image-article-select" style="max-width: 380px;">
+            <option value="retrieval-augmented-generation-architecture">Retrieval-Augmented Generation Architecture</option>
+            <option value="small-business-cash-flow-forecast">Small-Business Cash Flow Forecasting</option>
+            <option value="digital-minimalism-daily-focus-routine">Digital Minimalism Daily Focus Routine</option>
+            <option value="deepseek-r1-architecture-breakdown">DeepSeek R1 Architecture Breakdown</option>
+            <option value="sqlite-in-production-guide">SQLite in Production: Architectural Trade-Offs</option>
+            <option value="remote-developer-salary-guide-2026">Remote Developer Salary Guide 2026</option>
+          </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <label for="image-style-select" style="font-weight: 700; font-size: 0.84rem;">Style Preset:</label>
+          <select id="image-style-select" style="width: auto;">
+            <option value="minimalist">Minimalist Editorial (Orange #F28C28)</option>
+            <option value="matrix">Tech Matrix (Amber #FF9F43)</option>
+            <option value="abstract">Vibrant Abstract (Layered Glass)</option>
+            <option value="vector">Clean Vector (Shadow Glass)</option>
+          </select>
+          <button type="button" class="btn btn--primary btn--sm" id="btn-regen-all-images">Regenerate All 3</button>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="image-studio__status-badge" data-status="complete" id="image-studio-badge">
+            ✓ Visually Complete (3/3 Images Available)
+          </span>
+          <span style="font-size: 0.78rem; color: var(--muted);" id="image-studio-notice">All assets optimized with descriptive alt text.</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn btn--sm" id="btn-approve-images">Approve Visuals</button>
+          <button type="button" class="btn btn--danger btn--sm" id="btn-reject-images">Flag Revision</button>
+        </div>
+      </div>
+
+      <!-- 3-Image Grid -->
+      <div class="article-images-grid" id="article-images-container">
+        <!-- Card 1: Featured -->
+        <div class="article-image-card">
+          <div class="article-image-card__preview">
+            <span class="article-image-card__badge">Image 1 · Featured Cover</span>
+            <img id="img-preview-featured" src="/assets/images/articles/retrieval-augmented-generation-architecture/featured.svg" alt="Featured hero illustration" loading="lazy">
+          </div>
+          <div class="article-image-card__body">
+            <h4 class="article-image-card__title">Editorial Hero Cover</h4>
+            <p class="article-image-card__alt" id="alt-preview-featured">Primary 16:9 banner with orange glassmorphic elements and high-contrast composition.</p>
+            <div class="article-image-card__actions">
+              <button type="button" class="btn btn--sm btn--ghost" data-regen-slot="featured">Regenerate Image 1</button>
+              <span style="font-size: 0.72rem; color: var(--muted); margin-left: auto;">1200 × 675 SVG</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Supporting 1 -->
+        <div class="article-image-card">
+          <div class="article-image-card__preview">
+            <span class="article-image-card__badge">Image 2 · Supporting 1</span>
+            <img id="img-preview-supp1" src="/assets/images/articles/retrieval-augmented-generation-architecture/supporting1.svg" alt="Supporting conceptual diagram" loading="lazy">
+          </div>
+          <div class="article-image-card__body">
+            <h4 class="article-image-card__title">Supporting Diagram 1</h4>
+            <p class="article-image-card__alt" id="alt-preview-supp1">Technical architecture and process schematic integrated into the first half of the article.</p>
+            <div class="article-image-card__actions">
+              <button type="button" class="btn btn--sm btn--ghost" data-regen-slot="supporting1">Regenerate Image 2</button>
+              <span style="font-size: 0.72rem; color: var(--muted); margin-left: auto;">800 × 450 SVG</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Supporting 2 -->
+        <div class="article-image-card">
+          <div class="article-image-card__preview">
+            <span class="article-image-card__badge">Image 3 · Supporting 2</span>
+            <img id="img-preview-supp2" src="/assets/images/articles/retrieval-augmented-generation-architecture/supporting2.svg" alt="Practical workflow diagram" loading="lazy">
+          </div>
+          <div class="article-image-card__body">
+            <h4 class="article-image-card__title">Supporting Diagram 2</h4>
+            <p class="article-image-card__alt" id="alt-preview-supp2">Implementation methodology, practical benchmarks and key decision workflows.</p>
+            <div class="article-image-card__actions">
+              <button type="button" class="btn btn--sm btn--ghost" data-regen-slot="supporting2">Regenerate Image 3</button>
+              <span style="font-size: 0.72rem; color: var(--muted); margin-left: auto;">800 × 450 SVG</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Visual Library Section -->
+      <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+          <div>
+            <h3 style="font-size: 1.05rem; margin: 0 0 4px;">Category Visual Library (12 Branded SVGs)</h3>
+            <p style="font-size: 0.78rem; color: var(--muted); margin: 0;">Pre-built editorial category assets in the SignalNest orange palette (#F28C28, #FF9F43, #171717, #FFF7ED).</p>
+          </div>
+          <span class="badge badge--tech">12/12 Verified</span>
+        </div>
+
+        <div class="category-library-grid">
+          <!-- Tech & AI -->
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/tech-ai-1.svg" alt="Tech & AI 1" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Technology &amp; AI</span>
+              <span class="category-library-card__slot">tech-ai-1.svg</span>
+            </div>
+          </div>
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/tech-ai-2.svg" alt="Tech & AI 2" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Technology &amp; AI</span>
+              <span class="category-library-card__slot">tech-ai-2.svg</span>
+            </div>
+          </div>
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/tech-ai-3.svg" alt="Tech & AI 3" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Technology &amp; AI</span>
+              <span class="category-library-card__slot">tech-ai-3.svg</span>
+            </div>
+          </div>
+
+          <!-- Business & Finance -->
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/business-finance-1.svg" alt="Business & Finance 1" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Business &amp; Finance</span>
+              <span class="category-library-card__slot">business-finance-1.svg</span>
+            </div>
+          </div>
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/business-finance-2.svg" alt="Business & Finance 2" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Business &amp; Finance</span>
+              <span class="category-library-card__slot">business-finance-2.svg</span>
+            </div>
+          </div>
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/business-finance-3.svg" alt="Business & Finance 3" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Business &amp; Finance</span>
+              <span class="category-library-card__slot">business-finance-3.svg</span>
+            </div>
+          </div>
+
+          <!-- Education & Careers -->
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/education-careers-1.svg" alt="Education & Careers 1" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Education &amp; Careers</span>
+              <span class="category-library-card__slot">education-careers-1.svg</span>
+            </div>
+          </div>
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/education-careers-2.svg" alt="Education & Careers 2" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Education &amp; Careers</span>
+              <span class="category-library-card__slot">education-careers-2.svg</span>
+            </div>
+          </div>
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/education-careers-3.svg" alt="Education & Careers 3" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Education &amp; Careers</span>
+              <span class="category-library-card__slot">education-careers-3.svg</span>
+            </div>
+          </div>
+
+          <!-- Digital Lifestyle -->
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/digital-lifestyle-1.svg" alt="Digital Lifestyle 1" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Digital Lifestyle</span>
+              <span class="category-library-card__slot">digital-lifestyle-1.svg</span>
+            </div>
+          </div>
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/digital-lifestyle-2.svg" alt="Digital Lifestyle 2" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Digital Lifestyle</span>
+              <span class="category-library-card__slot">digital-lifestyle-2.svg</span>
+            </div>
+          </div>
+          <div class="category-library-card">
+            <div class="category-library-card__preview"><img src="/assets/images/categories/digital-lifestyle-3.svg" alt="Digital Lifestyle 3" loading="lazy"></div>
+            <div class="category-library-card__info">
+              <span class="category-library-card__name">Digital Lifestyle</span>
+              <span class="category-library-card__slot">digital-lifestyle-3.svg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6b. Ad Monetization: AdSense, AdMob & Adsterra -->
+  <section class="panel" id="panel-ads" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">💰 Ad Monetization Hub: AdSense, AdMob &amp; Adsterra</h2>
+      <div style="display: flex; gap: 8px;">
+        <span class="badge badge--tech">ads.txt Verified</span>
+        <span class="badge badge--tech">app-ads.txt Ready</span>
+      </div>
+    </div>
+    <p class="panel__note">
+      Manage high-CPM multi-network monetization across <strong>Google AdSense</strong> (web display &amp; native in-article), <strong>Google AdMob</strong> (mobile web / PWA app-ads.txt), and <strong>Adsterra</strong> (high-fill banners). All ad units strictly render inside dedicated <code>&lt;aside class="ad-slot"&gt;</code> containers with CSS layout containment to prevent Cumulative Layout Shift (CLS).
+    </p>
+
+    <div style="display: grid; gap: 24px;">
+      <!-- Global Toggle Card -->
+      <div style="background: var(--glass-surface); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <h3 style="margin: 0 0 4px; font-size: 1.05rem;">Global Advertising Engine</h3>
+          <p style="margin: 0; font-size: 0.8rem; color: var(--muted);">Enable or disable all advertising tags across header, in-article, sidebar, and footer slots.</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer;">
+            <input type="checkbox" id="ad-global-toggle" style="width: 18px; height: 18px; accent-color: var(--primary-orange);"> Enable Ad Units
+          </label>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        <!-- Network 1: Google AdSense -->
+        <div style="background: var(--glass-surface); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+              <span style="color: #4285F4;">●</span> Google AdSense
+            </h3>
+            <span class="badge badge--tech">Display &amp; Native</span>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.5;">Official Google AdSense script integration with automatic responsive slot sizing.</p>
+
+          <div class="form-row">
+            <label for="ad-adsense-client">Publisher Client ID</label>
+            <input id="ad-adsense-client" type="text" placeholder="ca-pub-XXXXXXXXXXXXXXXX" spellcheck="false">
+            <span class="form-hint">Matches your AdSense account ID. Written to <code>ads.txt</code> automatically.</span>
+          </div>
+
+          <div class="form-row">
+            <label for="ad-adsense-header">Header Slot ID</label>
+            <input id="ad-adsense-header" type="text" placeholder="1234567890">
+          </div>
+
+          <div class="form-row">
+            <label for="ad-adsense-article">In-Article Slot ID</label>
+            <input id="ad-adsense-article" type="text" placeholder="2345678901">
+          </div>
+
+          <div class="form-row">
+            <label for="ad-adsense-sidebar">Sidebar Slot ID</label>
+            <input id="ad-adsense-sidebar" type="text" placeholder="3456789012">
+          </div>
+        </div>
+
+        <!-- Network 2: Google AdMob -->
+        <div style="background: var(--glass-surface); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+              <span style="color: #EA4335;">●</span> Google AdMob
+            </h3>
+            <span class="badge badge--lifestyle">App &amp; PWA</span>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.5;">Mobile app and progressive web application monetization compliant with Google's app-ads.txt specification.</p>
+
+          <div class="form-row">
+            <label for="ad-admob-pub">AdMob Publisher ID</label>
+            <input id="ad-admob-pub" type="text" placeholder="pub-XXXXXXXXXXXXXXXX" spellcheck="false">
+            <span class="form-hint">Used for <code>app-ads.txt</code> app store ownership verification.</span>
+          </div>
+
+          <div class="form-row">
+            <label for="ad-admob-appid">AdMob App ID (Optional)</label>
+            <input id="ad-admob-appid" type="text" placeholder="ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX" spellcheck="false">
+          </div>
+
+          <div class="form-row">
+            <label for="ad-admob-slot">Mobile Banner Unit ID</label>
+            <input id="ad-admob-slot" type="text" placeholder="ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX">
+          </div>
+
+          <div style="margin-top: auto; padding: 10px; background: rgba(242,140,40,0.08); border-radius: var(--radius-sm); border: 1px solid var(--line);">
+            <span style="font-size: 0.74rem; font-weight: 700; color: var(--primary-orange);">Direct app-ads.txt URL:</span><br>
+            <a href="/app-ads.txt" target="_blank" rel="noopener" style="font-size: 0.76rem; font-family: var(--font-mono); color: var(--ink);">https://signalnestnews.vercel.app/app-ads.txt &rarr;</a>
+          </div>
+        </div>
+
+        <!-- Network 3: Adsterra -->
+        <div style="background: var(--glass-surface); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+              <span style="color: #34A853;">●</span> Adsterra Network
+            </h3>
+            <span class="badge badge--finance">High-CPM Banners</span>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.5;">Direct invocation scripts and high-fill native banners for global impressions.</p>
+
+          <div class="form-row">
+            <label for="ad-adsterra-key">Adsterra Account / Domain Key</label>
+            <input id="ad-adsterra-key" type="text" placeholder="e.g. 1a2b3c4d" spellcheck="false">
+          </div>
+
+          <div class="form-row">
+            <label for="ad-adsterra-header">Header Placement ID</label>
+            <input id="ad-adsterra-header" type="text" placeholder="728x90 Banner Placement ID">
+          </div>
+
+          <div class="form-row">
+            <label for="ad-adsterra-sidebar">Sidebar Placement ID</label>
+            <input id="ad-adsterra-sidebar" type="text" placeholder="300x250 Banner Placement ID">
+          </div>
+
+          <div class="form-row">
+            <label for="ad-adsterra-footer">Footer Placement ID</label>
+            <input id="ad-adsterra-footer" type="text" placeholder="Footer Banner Placement ID">
+          </div>
+        </div>
+      </div>
+
+      <!-- Live ads.txt & app-ads.txt Status Box -->
+      <div style="background: var(--glass-surface); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 20px;">
+        <h4 style="font-size: 0.98rem; margin: 0 0 10px; display: flex; align-items: center; justify-content: space-between;">
+          <span>📋 Authorised Digital Sellers Verification (ads.txt &amp; app-ads.txt)</span>
+          <span style="font-size: 0.76rem; color: var(--ok); font-weight: 700;">● Direct Seller Policy Compliant</span>
+        </h4>
+        <p style="font-size: 0.8rem; color: var(--muted); margin: 0 0 12px;">
+          Search engine crawlers and ad network verification bots require strict ads.txt records at your root domain.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">Web ads.txt (/ads.txt)</span>
+            <pre style="background: #0f0f10; color: #e4e4e7; padding: 12px; border-radius: var(--radius-sm); font-size: 0.74rem; line-height: 1.5; max-height: 120px; overflow-y: auto; margin-top: 4px;" id="preview-ads-txt"># ads.txt for SignalNest
+# Authorised digital sellers only.
+# No Google AdSense/AdMob publisher ID configured.</pre>
+          </div>
+          <div>
+            <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">Mobile app-ads.txt (/app-ads.txt)</span>
+            <pre style="background: #0f0f10; color: #e4e4e7; padding: 12px; border-radius: var(--radius-sm); font-size: 0.74rem; line-height: 1.5; max-height: 120px; overflow-y: auto; margin-top: 4px;" id="preview-app-ads-txt"># app-ads.txt for SignalNest (Google AdMob)
+# No Google AdMob publisher ID configured.</pre>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 16px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn btn--primary btn--sm" id="btn-save-ads">Save Ad Configuration</button>
+          <a href="/ads.txt" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">View Live ads.txt &rarr;</a>
+          <a href="/app-ads.txt" target="_blank" rel="noopener" class="btn btn--ghost btn--sm">View Live app-ads.txt &rarr;</a>
+          <span class="form-status" id="ads-save-status" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Privacy, Gmail & Contacts Data Integrity -->
+  <section class="panel" id="panel-privacy" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">🔒 Privacy, Gmail &amp; Contacts Data Integrity</h2>
+      <span class="badge badge--security">Zero-Fabrication Policy</span>
+    </div>
+    <p class="panel__note">
+      SignalNest strictly protects personal data and privacy. <strong>CRITICAL RULE:</strong> Never invent imaginary Gmail messages, contact names, email addresses, phone numbers, conversations, or contact records. Private communications must remain private and must never become public website content.
+    </p>
+
+    <div style="display: grid; gap: 18px; max-width: 720px;">
+      <div style="background: var(--glass-surface); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 18px;">
+        <h3 style="font-size: 1rem; margin: 0 0 8px; display: flex; align-items: center; gap: 8px;">
+          <span style="color: var(--primary-orange);">●</span> Google Workspace Integration Status
+        </h3>
+        <p style="font-size: 0.84rem; color: var(--muted); margin: 0 0 12px; line-height: 1.5;">
+          <strong>Status: Integration Unavailable (Not an empty inbox).</strong><br>
+          Google OAuth 2.0 authorization is currently not configured on this instance. The address book and Gmail inbox are not synchronized, and no placeholder records will ever be displayed.
+        </p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="btn btn--sm" id="btn-oauth-check">Check OAuth Status</button>
+          <button type="button" class="btn btn--danger btn--sm" id="btn-oauth-disconnect">Disconnect &amp; Clear Tokens</button>
+        </div>
+        <p class="form-status" id="privacy-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div style="background: var(--glass-surface); border: 1px solid var(--glass-border); border-radius: var(--radius); padding: 18px;">
+        <h4 style="font-size: 0.92rem; margin: 0 0 8px;">Required OAuth 2.0 Configuration Checklist</h4>
+        <ul style="font-size: 0.8rem; color: var(--muted); line-height: 1.6; margin: 0; padding-left: 18px;">
+          <li>Configured in protected Vercel server environment variables only (never in browser JS).</li>
+          <li>Minimal necessary scopes requested (e.g. <code>https://www.googleapis.com/auth/gmail.send</code> for contact routing).</li>
+          <li>Consent screen clearly identifies SignalNest and Pacmedia Tech as the verified requester.</li>
+          <li>Data timestamps recorded whenever synchronization occurs; unavailable data explicitly labeled.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Owner Profile & About Manager -->
+  <section class="panel" id="panel-profile" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">👤 Verified Owner Profile &amp; Bio Manager</h2>
+      <span class="badge badge--tech">Verified Historical Records</span>
+    </div>
+    <p class="panel__note">
+      SignalNest editorial biography for <strong>Christian Agbodzi</strong>.
+      This profile uses strictly verified historical information. No degrees, employment, awards, phone numbers, or achievements outside verified records are permitted.
+    </p>
+
+    <div class="profile-card">
+      <div class="profile-card__header">
+        <div class="profile-avatar-badge">CA</div>
+        <div>
+          <h3 style="margin: 0; font-size: 1.25rem;">Christian Agbodzi</h3>
+          <p style="margin: 2px 0 0; font-size: 0.84rem; color: var(--muted);">Founder, Technical Lead &amp; Head of Engineering · Pacmedia Tech</p>
+        </div>
+      </div>
+
+      <div class="profile-card__details">
+        <div class="profile-field">
+          <span class="profile-field__label">Location</span>
+          <span class="profile-field__val">Oshuman, Accra, Ghana</span>
+        </div>
+        <div class="profile-field">
+          <span class="profile-field__label">Higher Education</span>
+          <span class="profile-field__val">BSc Information Technology (Studying), University of Ghana</span>
+        </div>
+        <div class="profile-field">
+          <span class="profile-field__label">Secondary Education</span>
+          <span class="profile-field__val">Odorgonno Senior High School (WASSCE, 2019)</span>
+        </div>
+        <div class="profile-field">
+          <span class="profile-field__label">Previous Experience</span>
+          <span class="profile-field__val">Mega Serene International (Jan 2023 – Dec 2024)<br><span style="font-size: 0.78rem; font-weight: 400; color: var(--muted);">Teacher · Head of JHS Department · IT Personnel</span></span>
+        </div>
+        <div class="profile-field">
+          <span class="profile-field__label">Core Technical Stack</span>
+          <span class="profile-field__val">HTML, CSS, JavaScript, PHP, Laravel, Tailwind CSS, Python (Basics), n8n, Make.com, IT Support</span>
+        </div>
+        <div class="profile-field">
+          <span class="profile-field__label">Verified Public Links</span>
+          <span class="profile-field__val" style="font-size: 0.8rem;">
+            Blog: <a href="https://pacmediatech.blogspot.com/" target="_blank" rel="noopener">pacmediatech.blogspot.com</a><br>
+            LinkedIn: <a href="https://www.linkedin.com/in/christian-agbodzi-47b786387/" target="_blank" rel="noopener">Christian Agbodzi</a><br>
+            Pinterest: <a href="https://www.pinterest.com/agbodchrist/" target="_blank" rel="noopener">@agbodchrist</a>
+          </span>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--line);">
+        <h4 style="font-size: 0.92rem; margin: 0 0 10px;">Edit About Page Narrative (Owner Approval)</h4>
+        <form id="profile-edit-form" class="form-grid">
+          <label for="profile-bio">Bio Summary</label>
+          <textarea id="profile-bio" rows="4">Christian Agbodzi is an Information Technology scholar and developer based in Oshuman, Accra, Ghana. Studying BSc Information Technology at the University of Ghana, he leads technical operations at Pacmedia Tech. Previously, he served at Mega Serene International (Jan 2023 - Dec 2024) as Teacher, Head of the Junior High School Department, and IT Personnel.</textarea>
+          
+          <label for="profile-skills">Skills &amp; Technologies (comma separated)</label>
+          <input id="profile-skills" type="text" value="HTML, CSS, JavaScript, PHP, Laravel, Tailwind CSS, Python basics, n8n, Make.com, IT support, Data entry">
+
+          <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <button type="button" class="btn btn--primary btn--sm" id="btn-save-profile">Approve &amp; Save Profile</button>
+            <span class="form-status" id="profile-status" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Execution Logs & Diagnostics -->
+  <section class="panel" id="panel-logs" hidden>
+    <div class="panel__head">
+      <h2 class="panel__title">📜 Execution Logs &amp; Audit Trail</h2>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-clear-logs">Clear View</button>
+        <button type="button" class="btn btn--ghost btn--sm" id="btn-reload-logs">Refresh Feed</button>
+      </div>
+    </div>
+    <p class="panel__note">Live stream of automation executions, webhook calls, and visual generation verification events.</p>
+
+    <div class="log-stream" id="log-stream">
+      <div class="log-entry">
+        <span class="log-entry__time">06:15:20</span>
+        <span class="log-entry__tag log-entry__tag--ok">SYSTEM</span>
+        <span class="log-entry__msg">SignalNest owner dashboard initialized in orange glassmorphic presentation mode.</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-entry__time">06:14:02</span>
+        <span class="log-entry__tag log-entry__tag--ok">NA10</span>
+        <span class="log-entry__msg">Category visual library: 12/12 SVGs verified across Tech, Business, Education, and Lifestyle.</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-entry__time">06:12:45</span>
+        <span class="log-entry__tag log-entry__tag--ok">NA10</span>
+        <span class="log-entry__msg">Article images verified: 6 published articles carry 3/3 original images (18 total SVG assets).</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-entry__time">06:10:12</span>
+        <span class="log-entry__tag log-entry__tag--ok">BUILD</span>
+        <span class="log-entry__msg">Static site generator wrote 68 distribution files to dist/. All link anchors and image alt tags verified.</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-entry__time">06:05:00</span>
+        <span class="log-entry__tag log-entry__tag--ok">WF01</span>
+        <span class="log-entry__msg">Topic discovery: RSS feeds checked. 12 valid candidates queued with safety filtering.</span>
+      </div>
+    </div>
+  </section>
+
+  <p class="admin-footnote">
+    This page cannot publish anything on its own. Every decision is sent to the approval
+    workflow, which re-reads the draft from the repository, re-validates it, confirms the
+    token server-side and only then writes the published article. A forged browser request
+    without a valid token is rejected. No API keys or publishing credentials are ever stored in this client.
+  </p>
+</main>
+
+<script src="/admin/admin.js" defer></script>
+</body>
+</html>

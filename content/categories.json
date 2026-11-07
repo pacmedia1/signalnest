@@ -1,0 +1,100 @@
+[
+  {
+    "slug": "technology-ai",
+    "name": "Technology & AI",
+    "shortName": "Tech & AI",
+    "description": "Practical explanations of artificial intelligence, emerging technology and the tools shaping how we work, learn and build.",
+    "accent": "#F28C28",
+    "icon": "cpu",
+    "image": "/assets/images/categories/tech-ai-1.svg",
+    "libraryImages": [
+      "/assets/images/categories/tech-ai-1.svg",
+      "/assets/images/categories/tech-ai-2.svg",
+      "/assets/images/categories/tech-ai-3.svg"
+    ]
+  },
+  {
+    "slug": "education",
+    "name": "Education & Careers",
+    "shortName": "Education",
+    "description": "Study strategies, learning tools and honest guidance for students, teachers and self-directed career advancement.",
+    "accent": "#FF9F43",
+    "icon": "book",
+    "image": "/assets/images/categories/education-careers-1.svg",
+    "libraryImages": [
+      "/assets/images/categories/education-careers-1.svg",
+      "/assets/images/categories/education-careers-2.svg",
+      "/assets/images/categories/education-careers-3.svg"
+    ]
+  },
+  {
+    "slug": "business",
+    "name": "Business & Finance",
+    "shortName": "Business",
+    "description": "Small-business fundamentals, digital commerce and the operating financial decisions that make ventures durable.",
+    "accent": "#E65100",
+    "icon": "briefcase",
+    "image": "/assets/images/categories/business-finance-1.svg",
+    "libraryImages": [
+      "/assets/images/categories/business-finance-1.svg",
+      "/assets/images/categories/business-finance-2.svg",
+      "/assets/images/categories/business-finance-3.svg"
+    ]
+  },
+  {
+    "slug": "digital-skills",
+    "name": "Digital Skills & Opportunities",
+    "shortName": "Digital Skills",
+    "description": "Remote work, freelancing and the practical skills that convert internet access into durable income.",
+    "accent": "#EA580C",
+    "icon": "compass",
+    "image": "/assets/images/categories/digital-lifestyle-2.svg",
+    "libraryImages": [
+      "/assets/images/categories/digital-lifestyle-2.svg",
+      "/assets/images/categories/education-careers-2.svg",
+      "/assets/images/categories/tech-ai-2.svg"
+    ]
+  },
+  {
+    "slug": "software-tutorials",
+    "name": "Software & Tutorials",
+    "shortName": "Software",
+    "description": "Step-by-step walkthroughs for applications, developer tooling, spreadsheets and everyday digital utilities.",
+    "accent": "#D97706",
+    "icon": "code",
+    "image": "/assets/images/categories/tech-ai-2.svg",
+    "libraryImages": [
+      "/assets/images/categories/tech-ai-2.svg",
+      "/assets/images/categories/tech-ai-3.svg",
+      "/assets/images/categories/tech-ai-1.svg"
+    ]
+  },
+  {
+    "slug": "lifestyle",
+    "name": "Digital Lifestyle",
+    "shortName": "Lifestyle",
+    "description": "Everyday digital habits, intentional wellbeing and practical life knowledge explained without hype or filler.",
+    "accent": "#F97316",
+    "icon": "heart",
+    "image": "/assets/images/categories/digital-lifestyle-1.svg",
+    "libraryImages": [
+      "/assets/images/categories/digital-lifestyle-1.svg",
+      "/assets/images/categories/digital-lifestyle-2.svg",
+      "/assets/images/categories/digital-lifestyle-3.svg"
+    ]
+  },
+  {
+    "slug": "internet-trends",
+    "name": "Internet Trends & Resources",
+    "shortName": "Internet",
+    "description": "What is genuinely shifting online, plus the resources worth bookmarking and the ones worth ignoring.",
+    "accent": "#FB923C",
+    "icon": "globe",
+    "image": "/assets/images/categories/tech-ai-3.svg",
+    "libraryImages": [
+      "/assets/images/categories/tech-ai-3.svg",
+      "/assets/images/categories/business-finance-2.svg",
+      "/assets/images/categories/digital-lifestyle-3.svg"
+    ]
+  }
+]

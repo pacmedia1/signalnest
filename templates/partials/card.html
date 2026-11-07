@@ -1,0 +1,14 @@
+<article class="card">
+  <div class="card__media">
+    <img src="{{image}}" alt="{{imageAlt}}" width="640" height="360" loading="lazy" decoding="async">
+  </div>
+  <div class="card__body">
+    <a class="cat-chip" href="/categories/{{categorySlug}}" style="--accent:{{categoryAccent}};--accent-tint:{{categoryTint}}">{{categoryName}}</a>
+    <h3 class="card__title"><a href="/articles/{{slug}}">{{title}}</a></h3>
+    <p class="card__excerpt">{{excerpt}}</p>
+    <div class="card__footer">
+      <time datetime="{{publishedIso}}">{{publishedLabel}}</time>
+      <span>{{readingTime}} min read</span>
+    </div>
+  </div>
+</article>

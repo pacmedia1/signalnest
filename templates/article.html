@@ -1,0 +1,140 @@
+<div class="container">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      {{#each breadcrumbs}}<li>{{#if href}}<a href="{{href}}">{{label}}</a>{{else}}<span aria-current="page">{{label}}</span>{{/if}}</li>{{/each}}
+    </ol>
+  </nav>
+
+  <article data-slug="{{article.slug}}" data-title="{{article.title}}" data-category="{{article.categoryName}}">
+    <header class="article-header">
+      <a class="cat-chip" href="/categories/{{article.categorySlug}}" style="--accent:{{article.categoryAccent}};--accent-tint:{{article.categoryTint}}">{{article.categoryName}}</a>
+      <h1>{{article.title}}</h1>
+      <p class="article-standfirst">{{article.description}}</p>
+      <div class="meta">
+        <span class="meta__item">By {{article.author}}</span>
+        <span class="meta__item meta__dot"><time datetime="{{article.publishedIso}}">Published {{article.publishedLabel}}</time></span>
+        {{#if article.updatedLabel}}<span class="meta__item meta__dot"><time datetime="{{article.updatedIso}}">Updated {{article.updatedLabel}}</time></span>{{/if}}
+        <span class="meta__item meta__dot">{{article.readingTime}} min read</span>
+      </div>
+    </header>
+
+    <div class="article-layout">
+      <div>
+        {{#if article.image}}
+        <figure class="article-figure">
+          <img src="{{article.image}}" alt="{{article.imageAlt}}" width="1200" height="675" fetchpriority="high" decoding="async">
+          {{#if article.imageCaption}}<figcaption>{{article.imageCaption}}</figcaption>{{/if}}
+        </figure>
+        {{/if}}
+
+        {{{ads.inArticleTop}}}
+
+        {{#if article.verification.length}}
+        <aside class="verification" role="note">
+          <strong>Verify before you act:</strong>
+          <span>{{#each article.verification}}{{this}}{{#unless @last}}; {{/unless}}{{/each}}</span>
+        </aside>
+        {{/if}}
+
+        {{{article.tocHtml}}}
+
+        {{#if article.supportingImage1}}
+        <figure class="supporting-figure">
+          <img src="{{article.supportingImage1}}" alt="{{article.supportingImage1Alt}}" width="1200" height="750" loading="lazy" decoding="async">
+          {{#if article.supportingImage1Caption}}<figcaption>{{article.supportingImage1Caption}}</figcaption>{{/if}}
+        </figure>
+        {{/if}}
+
+        <div class="prose" id="article-body" data-slug="{{article.slug}}">
+          {{{article.content}}}
+        </div>
+
+        {{#if article.supportingImage2}}
+        <figure class="supporting-figure">
+          <img src="{{article.supportingImage2}}" alt="{{article.supportingImage2Alt}}" width="1200" height="750" loading="lazy" decoding="async">
+          {{#if article.supportingImage2Caption}}<figcaption>{{article.supportingImage2Caption}}</figcaption>{{/if}}
+        </figure>
+        {{/if}}
+
+        <div class="share" aria-label="Share this article">
+          <span class="share__label">Share</span>
+          <button type="button" data-bookmark-toggle data-slug="{{article.slug}}" data-title="{{article.title}}" data-url="/articles/{{article.slug}}">☆ Bookmark</button>
+          <a href="{{share.x}}" rel="nofollow noopener noreferrer" target="_blank">X</a>
+          <a href="{{share.facebook}}" rel="nofollow noopener noreferrer" target="_blank">Facebook</a>
+          <a href="{{share.linkedin}}" rel="nofollow noopener noreferrer" target="_blank">LinkedIn</a>
+          <a href="{{share.whatsapp}}" rel="nofollow noopener noreferrer" target="_blank">WhatsApp</a>
+          <button type="button" data-copy-link>Copy link</button>
+        </div>
+
+        {{#if article.sources.length}}
+        <section class="sources" aria-labelledby="sources-heading">
+          <h2 id="sources-heading">Sources &amp; verified citations</h2>
+          <ol>
+            {{#each article.sources}}<li><a href="{{url}}" rel="nofollow noopener noreferrer" target="_blank">{{title}}</a>{{#if publisher}} — {{publisher}}{{/if}}{{#if accessedLabel}} (accessed {{accessedLabel}}){{/if}}</li>{{/each}}
+          </ol>
+        </section>
+        {{/if}}
+
+        {{{ads.inArticleBottom}}}
+
+        <div class="article-foot">
+          <span>Reviewed by <strong>{{article.reviewer}}</strong> on {{article.reviewedLabel}}</span>
+          <a href="/legal/editorial-policy">How we research and verify</a>
+        </div>
+      </div>
+
+      <aside class="article-aside" aria-label="Article sidebar">
+        {{#if article.tocSidebar}}
+        <div class="aside-block">
+          <p class="aside-block__title">On this page</p>
+          {{{article.tocSidebar}}}
+        </div>
+        {{/if}}
+
+        {{{ads.sidebar}}}
+
+        {{#if related.length}}
+        <div class="aside-block">
+          <p class="aside-block__title">Related guides</p>
+          <ol class="trend-list">
+            {{#each related}}
+            <li>
+              <div>
+                <a href="/articles/{{slug}}">{{title}}</a>
+                <div class="meta"><span class="meta__item">{{categoryName}}</span><span class="meta__item meta__dot">{{readingTime}} min</span></div>
+              </div>
+            </li>
+            {{/each}}
+          </ol>
+        </div>
+        {{/if}}
+
+        <div class="aside-block">
+          <p class="aside-block__title">Weekly brief</p>
+          <p style="font-size:var(--step--1);color:var(--muted);margin:0 0 14px">One practical guide a week. Verified, concise, no spam.</p>
+          <form class="newsletter-form" data-newsletter-form novalidate style="display:flex;flex-direction:column;gap:10px">
+            <label class="visually-hidden" for="aside-email">Email address</label>
+            <input type="email" id="aside-email" name="email" placeholder="you@example.com" autocomplete="email" required
+                   style="padding:11px 14px;border:1px solid var(--glass-border);border-radius:var(--radius-sm);background:var(--paper);color:var(--ink);min-height:44px">
+            <button type="submit" class="btn btn--primary" style="width:100%">Subscribe</button>
+            <span class="newsletter__status" role="status" aria-live="polite" data-newsletter-status style="color:var(--muted)"></span>
+          </form>
+        </div>
+      </aside>
+    </div>
+
+    {{#if related.length}}
+    <section class="section section--sink" aria-labelledby="related-heading" style="border-radius:var(--radius-xl);margin-block:clamp(32px,5vw,56px);padding:clamp(24px,4vw,40px)">
+      <div class="section__head">
+        <h2 class="section__title" id="related-heading">Keep reading</h2>
+        <a class="section__link" href="/categories/{{article.categorySlug}}">More in {{article.categoryName}} →</a>
+      </div>
+      <div class="grid grid--3">
+        {{#each related}}{{> card}}{{/each}}
+      </div>
+    </section>
+    {{/if}}
+
+    <div class="container">{{{ads.footer}}}</div>
+  </article>
+</div>

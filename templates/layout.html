@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="{{site.language}}" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{page.title}}</title>
+<meta name="description" content="{{page.description}}">
+<meta name="robots" content="{{page.robots}}">
+<link rel="canonical" href="{{page.canonical}}">
+<meta name="theme-color" content="#F28C28" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/images/favicon.svg">
+<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="alternate" type="application/rss+xml" title="{{site.siteName}} feed" href="{{site.url}}/feed.xml">
+<meta property="og:site_name" content="{{site.siteName}}">
+<meta property="og:type" content="{{page.ogType}}">
+<meta property="og:title" content="{{page.ogTitle}}">
+<meta property="og:description" content="{{page.description}}">
+<meta property="og:url" content="{{page.canonical}}">
+<meta property="og:image" content="{{page.ogImage}}">
+<meta property="og:image:alt" content="{{page.ogImageAlt}}">
+<meta property="og:locale" content="{{site.locale}}">
+{{#if page.articlePublishedTime}}<meta property="article:published_time" content="{{page.articlePublishedTime}}">
+<meta property="article:modified_time" content="{{page.articleModifiedTime}}">
+{{#if page.articleSection}}<meta property="article:section" content="{{page.articleSection}}">
+{{/if}}{{/if}}{{#if page.noIndexFeed}}<meta name="googlebot" content="noindex, nofollow">{{/if}}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{page.ogTitle}}">
+<meta name="twitter:description" content="{{page.description}}">
+<meta name="twitter:image" content="{{page.ogImage}}">
+{{#if site.twitterHandle}}<meta name="twitter:site" content="{{site.twitterHandle}}">{{/if}}
+{{{page.jsonLd}}}
+{{#if ga4Id}}<script async src="https://www.googletagmanager.com/gtag/js?id={{ga4Id}}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ga4Id}}',{anonymize_ip:true});</script>
+{{/if}}{{#if adsenseClient}}<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{adsenseClient}}" crossorigin="anonymous"></script>
+{{/if}}</head>
+<body class="{{page.bodyClass}}">
+<a class="skip-link" href="#main">Skip to main content</a>
+<div class="progress" id="reading-progress" aria-hidden="true"></div>
+<header class="site-header">
+  <div class="container site-header__bar">
+    <a class="brand" href="/" aria-label="{{site.siteName}} home">
+      <img class="brand__mark" src="/assets/images/logo.svg" alt="" width="34" height="34" aria-hidden="true">
+      <span class="brand__name">{{site.brandFirst}}<span>{{site.brandSecond}}</span></span>
+    </a>
+    <nav class="nav" id="primary-nav" aria-label="Primary">
+      <ul class="nav__list">
+        {{#each nav}}<li><a class="nav__link" href="{{href}}"{{#if isActive}} aria-current="page"{{/if}}>{{label}}</a></li>
+        {{/each}}
+      </ul>
+    </nav>
+    <div class="header__actions">
+      <a class="icon-btn" href="/search" aria-label="Search articles">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      </a>
+      <button class="icon-btn" type="button" id="theme-toggle" aria-label="Switch colour theme" aria-pressed="false">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"></path></svg>
+      </button>
+      <button class="icon-btn nav-toggle" type="button" id="nav-toggle" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main id="main">
+{{{content}}}
+</main>
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col footer-about">
+        <a class="brand" href="/">
+          <img class="brand__mark" src="/assets/images/logo.svg" alt="" width="34" height="34" aria-hidden="true">
+          <span class="brand__name">{{site.brandFirst}}<span>{{site.brandSecond}}</span></span>
+        </a>
+        <p>{{site.description}}</p>
+      </div>
+      <div class="footer-col">
+        <h2>Explore</h2>
+        <ul>
+          {{#each footerCategories}}<li><a href="/categories/{{slug}}">{{name}}</a></li>
+          {{/each}}
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h2>Site</h2>
+        <ul>
+          {{#each footerLinks}}<li><a href="{{href}}">{{label}}</a></li>
+          {{/each}}
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h2>Editorial &amp; Verification</h2>
+        <ul>
+          <li><a href="/about">About Christian Agbodzi</a></li>
+          <li><a href="/legal/editorial-policy">How We Review Drafts</a></li>
+          <li><a href="/legal/affiliate-disclosure">Affiliate Disclosure</a></li>
+          <li><a href="/legal/privacy">Privacy Policy</a></li>
+          <li><a href="/legal/cookies">Cookie Notice</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© {{year}} {{site.siteName}} · Founded by Christian Agbodzi (Pacmedia Tech). All rights reserved.</p>
+      <p>Human-reviewed publishing. Advertising is labelled and kept separate from editorial content.</p>
+    </div>
+    <p class="disclosure-note">Some outbound links may be affiliate links. If you buy through them we may earn a commission at no extra cost to you. We do not accept payment for positive coverage, and advertising never influences editorial decisions. <a href="/legal/affiliate-disclosure">Read the full disclosure</a>.</p>
+  </div>
+</footer>
+
+<div class="cookie-banner" id="cookie-banner" role="region" aria-label="Privacy and cookies" hidden>
+  <h3>Cookie &amp; Privacy Preferences</h3>
+  <p>SignalNest uses strictly necessary cookies for theme settings. Optional analytics are loaded only when accepted. Read our <a href="/legal/privacy">Privacy Policy</a> and <a href="/legal/cookies">Cookie Notice</a>.</p>
+  <div class="cookie-banner__actions">
+    <button type="button" class="btn btn--primary" id="btn-cookie-accept">Accept All</button>
+    <button type="button" class="btn btn--ghost" id="btn-cookie-essential">Essential Only</button>
+  </div>
+</div>
+
+<script src="/assets/js/app.js" defer></script>
+{{{page.extraScripts}}}
+</body>
+</html>

@@ -1,0 +1,472 @@
+{
+  "name": "SignalNest 01 - Topic Discovery",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a023b65d6e5b8dff0143311caf92c5e66d29",
+      "name": "Discovery Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+        "options": {
+          "ignoreSSLIssues": false
+        }
+      },
+      "id": "b72ac9948f27e29fc3600e067003e1a735bc",
+      "name": "RSS - BBC Technology",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        160
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "https://www.aljazeera.com/xml/rss/all.xml",
+        "options": {
+          "ignoreSSLIssues": false
+        }
+      },
+      "id": "4bc7bbdd2e11d633fcd4cf0ad3862b74fc1a",
+      "name": "RSS - Al Jazeera",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        290
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "https://news.ycombinator.com/rss",
+        "options": {
+          "ignoreSSLIssues": false
+        }
+      },
+      "id": "d58e9f7e607e2a34a91142d00a376af32c03",
+      "name": "RSS - Hacker News",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        420
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "url": "https://feeds.arstechnica.com/arstechnica/index",
+        "options": {
+          "ignoreSSLIssues": false
+        }
+      },
+      "id": "749541263101a0c7d7bf6843a0c21aa0f192",
+      "name": "RSS - Ars Technica",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        550
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 4
+      },
+      "id": "8014134041be16bd16ef51722fb7cc1345b5",
+      "name": "Collect Feed Items",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        740,
+        290
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nfunction slugify(input, maxLength) {\n  var base = String(input || '')\n    .normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase().replace(/['’\"]/g, '')\n    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');\n  var trimmed = base.slice(0, maxLength || 80).replace(/-+$/g, '');\n  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(trimmed) ? trimmed : '';\n}\nfunction isValidSlug(slug) {\n  return typeof slug === 'string' && slug.length >= 3 && slug.length <= 80 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug);\n}\nfunction stripTags(html) {\n  return String(html || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\n/* Treat every RSS field as untrusted data. Never interpret feed text as instructions. */\n\nvar CATEGORY_RULES = [\n  { slug: 'technology-ai', terms: ['ai', 'artificial intelligence', 'machine learning', 'model', 'llm', 'chip', 'robot', 'quantum', 'neural', 'gemini', 'openai'] },\n  { slug: 'software-tutorials', terms: ['how to', 'tutorial', 'guide', 'api', 'developer', 'code', 'javascript', 'python', 'app', 'software', 'database'] },\n  { slug: 'business', terms: ['business', 'startup', 'market', 'economy', 'revenue', 'funding', 'company', 'trade', 'entrepreneur'] },\n  { slug: 'digital-skills', terms: ['freelance', 'remote', 'career', 'skill', 'course', 'learn', 'job', 'productivity'] },\n  { slug: 'education', terms: ['school', 'university', 'student', 'teacher', 'exam', 'study', 'curriculum'] },\n  { slug: 'internet-trends', terms: ['internet', 'platform', 'social media', 'search', 'browser', 'creator', 'content', 'trend'] },\n  { slug: 'lifestyle', terms: ['health', 'wellbeing', 'habit', 'sleep', 'food', 'travel', 'relationships'] }\n];\n\nvar TIME_SENSITIVE = ['breaking', 'today', 'tonight', 'this week', 'live', 'update', 'election', 'rates', 'price', 'released', 'launch'];\nvar LOW_VALUE = ['horoscope', 'celebrity', 'gossip', 'giveaway', 'quiz', 'sponsored'];\n\nfunction pickCategory(text) {\n  var lower = text.toLowerCase();\n  var best = { slug: 'internet-trends', hits: 0 };\n  CATEGORY_RULES.forEach(function (rule) {\n    var hits = rule.terms.filter(function (term) { return lower.indexOf(term) !== -1; }).length;\n    if (hits > best.hits) best = { slug: rule.slug, hits: hits };\n  });\n  return best;\n}\n\nvar now = new Date().toISOString();\nvar seen = {};\nvar topics = [];\n\n$input.all().forEach(function (item) {\n  var data = item.json || {};\n  var title = String(data.title || '').replace(/\\s+/g, ' ').trim();\n  var link = String(data.link || data.url || '').trim();\n  if (!title || title.length < 20 || topicWordCount(title) < 4) return;\n  if (!/^https?:\\/\\//i.test(link)) return;\n\n  var summary = String(data.contentSnippet || data.content || data.summary || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 900);\n  var key = (title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() + '|' + link.toLowerCase().replace(/[?#].*$/, '')).slice(0, 220);\n  if (seen[key]) return;\n  seen[key] = true;\n\n  var category = pickCategory(title + ' ' + summary);\n  var lower = (title + ' ' + summary).toLowerCase();\n  var timeSensitive = TIME_SENSITIVE.some(function (term) { return lower.indexOf(term) !== -1; });\n  var lowValue = LOW_VALUE.some(function (term) { return lower.indexOf(term) !== -1; });\n\n  var score = 40 + category.hits * 12;\n  if (summary.length > 160) score += 8;\n  if (timeSensitive) score += 6;\n  if (lowValue) score -= 35;\n  if (/[?]$/.test(title)) score += 4;\n\n  topics.push({\n    id: slugify(title).slice(0, 60) + '-' + String(Math.abs(hashCode(link)) % 99991),\n    title: title.slice(0, 180),\n    summary: summary,\n    sourceUrl: link,\n    sourceName: String(data.creator || data.author || data.feedTitle || 'RSS'),\n    discoveredAt: now,\n    category: category.slug,\n    categoryConfidence: category.hits,\n    score: Math.max(0, Math.min(100, score)),\n    status: lowValue ? 'rejected' : 'candidate',\n    timeSensitive: timeSensitive,\n    notes: lowValue ? 'Filtered out: low-value topic pattern.' : ''\n  });\n});\n\nfunction topicWordCount(text) { return text.trim().split(/\\s+/).length; }\nfunction hashCode(value) {\n  var hash = 0;\n  for (var i = 0; i < value.length; i++) { hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0; }\n  return hash;\n}\n\ntopics.sort(function (a, b) { return b.score - a.score; });\n\nreturn [{ json: { discoveredAt: now, discoveredCount: topics.length, topics: topics } }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "92bfc88aaa8abc9b0bc65edf70cd4afaedf5",
+      "name": "Normalise And Score Topics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        290
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/queue/topics.json?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        }
+      },
+      "id": "08fb7d2b2e582daf95178c2be26293027a4b",
+      "name": "Read Topic Queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        290
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\nfunction slugify(input, maxLength) {\n  var base = String(input || '')\n    .normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase().replace(/['’\"]/g, '')\n    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');\n  var trimmed = base.slice(0, maxLength || 80).replace(/-+$/g, '');\n  return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(trimmed) ? trimmed : '';\n}\nfunction isValidSlug(slug) {\n  return typeof slug === 'string' && slug.length >= 3 && slug.length <= 80 && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug);\n}\nfunction stripTags(html) {\n  return String(html || '').replace(/<[^>]*>/g, ' ').replace(/\\s+/g, ' ').trim();\n}\n\n\n/* UTF-8 safe base64 (no Buffer / btoa dependency). */\nfunction base64Encode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var str = String(input === undefined || input === null ? '' : input);\n  var bytes = [];\n  for (var i = 0; i < str.length; i++) {\n    var code = str.codePointAt(i);\n    if (code > 0xffff) i++;\n    if (code < 0x80) bytes.push(code);\n    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));\n    else if (code < 0x10000) bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n    else bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n  }\n  var out = '';\n  for (var j = 0; j < bytes.length; j += 3) {\n    var b0 = bytes[j], b1 = bytes[j + 1], b2 = bytes[j + 2];\n    out += CH[b0 >> 2];\n    out += CH[((b0 & 3) << 4) | ((b1 || 0) >> 4)];\n    out += b1 === undefined ? '=' : CH[((b1 & 15) << 2) | ((b2 || 0) >> 6)];\n    out += b2 === undefined ? '=' : CH[b2 & 63];\n  }\n  return out;\n}\n\nfunction base64Decode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var clean = String(input || '').replace(/[^A-Za-z0-9+/=]/g, '');\n  var bytes = [];\n  for (var i = 0; i < clean.length; i += 4) {\n    var c0 = CH.indexOf(clean[i]), c1 = CH.indexOf(clean[i + 1]);\n    var c2 = CH.indexOf(clean[i + 2]), c3 = CH.indexOf(clean[i + 3]);\n    if (c0 < 0 || c1 < 0) break;\n    bytes.push((c0 << 2) | (c1 >> 4));\n    if (c2 >= 0) bytes.push(((c1 & 15) << 4) | (c2 >> 2));\n    if (c3 >= 0) bytes.push(((c2 & 3) << 6) | c3);\n  }\n  var out = '';\n  for (var k = 0; k < bytes.length;) {\n    var b = bytes[k];\n    if (b < 0x80) { out += String.fromCharCode(b); k += 1; }\n    else if (b < 0xe0) { out += String.fromCharCode(((b & 0x1f) << 6) | (bytes[k + 1] & 0x3f)); k += 2; }\n    else if (b < 0xf0) { out += String.fromCharCode(((b & 0x0f) << 12) | ((bytes[k + 1] & 0x3f) << 6) | (bytes[k + 2] & 0x3f)); k += 3; }\n    else { var cp = ((b & 0x07) << 18) | ((bytes[k + 1] & 0x3f) << 12) | ((bytes[k + 2] & 0x3f) << 6) | (bytes[k + 3] & 0x3f); out += String.fromCodePoint(cp); k += 4; }\n  }\n  return out;\n}\n\n/* Persistent de-duplication: the queue file is the memory, not the execution. */\n\nvar incoming = $('Normalise And Score Topics').first().json;\nvar readResponse = $input.first().json || {};\n\nvar existing = { topics: [] };\nvar sha = null;\nvar fileExists = false;\n\nif (readResponse.statusCode === 200 && readResponse.body) {\n  var parsed = readResponse.body;\n  if (typeof parsed === 'string') { try { parsed = JSON.parse(parsed); } catch (e) { parsed = null; } }\n  if (parsed && Array.isArray(parsed.topics)) { existing = parsed; fileExists = true; sha = readResponse.body && readResponse.body.sha ? readResponse.body.sha : null; }\n  if (parsed && parsed.sha) sha = parsed.sha;\n}\nif (readResponse.body && readResponse.body.sha) sha = readResponse.body.sha;\n\nvar known = {};\nexisting.topics.forEach(function (topic) {\n  known[slugify(topic.title).slice(0, 90)] = true;\n  if (topic.sourceUrl) known[String(topic.sourceUrl).toLowerCase().replace(/[?#].*$/, '')] = true;\n});\n\nvar added = 0;\nvar duplicates = 0;\n(incoming.topics || []).forEach(function (topic) {\n  var titleKey = slugify(topic.title).slice(0, 90);\n  var urlKey = String(topic.sourceUrl || '').toLowerCase().replace(/[?#].*$/, '');\n  if (known[titleKey] || known[urlKey]) { duplicates++; return; }\n  known[titleKey] = true;\n  known[urlKey] = true;\n  existing.topics.push(topic);\n  added++;\n});\n\n/* Keep the queue bounded but never lose queued or drafted work. */\nvar STATUS_WEIGHT = { queued: 0, generating: 0, candidate: 1, drafted: 0, published: 2, rejected: 3 };\nexisting.topics.sort(function (a, b) {\n  var weight = (STATUS_WEIGHT[a.status] || 1) - (STATUS_WEIGHT[b.status] || 1);\n  if (weight !== 0) return weight;\n  return (b.score || 0) - (a.score || 0);\n});\nvar MAX_TOPICS = 500;\nif (existing.topics.length > MAX_TOPICS) {\n  var keep = existing.topics.filter(function (t) { return t.status !== 'rejected'; }).slice(0, MAX_TOPICS);\n  existing.topics = keep;\n}\n\nvar payload = {\n  version: 1,\n  updatedAt: new Date().toISOString(),\n  topics: existing.topics\n};\nvar fileContent = JSON.stringify(payload, null, 2);\nvar putBody = { message: 'chore(topics): queue update (+' + added + ' topics)', content: base64Encode(fileContent), branch: $env.GITHUB_BRANCH };\nif (sha) putBody.sha = sha;\n\nreturn [{\n  json: {\n    added: added,\n    duplicates: duplicates,\n    totalTopics: payload.topics.length,\n    queued: payload.topics.filter(function (t) { return t.status === 'queued'; }).length,\n    candidates: payload.topics.filter(function (t) { return t.status === 'candidate'; }).length,\n    shouldCommit: added > 0 || !fileExists,\n    githubPutBody: JSON.stringify(putBody),\n    fileExists: fileExists\n  }\n}];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "0b1b423ade664c101d16527f9bee2a087879",
+      "name": "Merge With Persistent Queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        290
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.shouldCommit }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "915533613ea65b412babb2c7fa98c9ebe4d1",
+      "name": "Has New Topics?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1700,
+        290
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/content/queue/topics.json?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.githubPutBody }}"
+      },
+      "id": "6d9f4487e741515cb07f7771de24f0821b3f",
+      "name": "Save Topic Queue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1940,
+        160
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=🗂 <b>SignalNest discovery</b>\nNew topics: {{ $(\"Merge With Persistent Queue\").first().json.added }}\nQueue size: {{ $(\"Merge With Persistent Queue\").first().json.totalTopics }}\nQueued: {{ $(\"Merge With Persistent Queue\").first().json.queued }} · Candidates: {{ $(\"Merge With Persistent Queue\").first().json.candidates }}\nReview and set status to \"queued\" to draft them.",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "e36fe1c6fc7c850e2905ca2d43fa2391592c",
+      "name": "Notify New Topics",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2180,
+        160
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "4d59be9aba6b632e6f50241c0c71867b26ab",
+      "name": "No New Topics",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Discovery Schedule": {
+      "main": [
+        [
+          {
+            "node": "RSS - BBC Technology",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS - Al Jazeera",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS - Hacker News",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS - Ars Technica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS - BBC Technology": {
+      "main": [
+        [
+          {
+            "node": "Collect Feed Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS - Al Jazeera": {
+      "main": [
+        [
+          {
+            "node": "Collect Feed Items",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "RSS - Hacker News": {
+      "main": [
+        [
+          {
+            "node": "Collect Feed Items",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "RSS - Ars Technica": {
+      "main": [
+        [
+          {
+            "node": "Collect Feed Items",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Collect Feed Items": {
+      "main": [
+        [
+          {
+            "node": "Normalise And Score Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise And Score Topics": {
+      "main": [
+        [
+          {
+            "node": "Read Topic Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Topic Queue": {
+      "main": [
+        [
+          {
+            "node": "Merge With Persistent Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge With Persistent Queue": {
+      "main": [
+        [
+          {
+            "node": "Has New Topics?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New Topics?": {
+      "main": [
+        [
+          {
+            "node": "Save Topic Queue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No New Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Topic Queue": {
+      "main": [
+        [
+          {
+            "node": "Notify New Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "timezone": "Africa/Accra"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "signalnest": {
+      "purpose": "Discover candidate topics from RSS, score them and persist a de-duplicated queue in GitHub.",
+      "requires": [
+        "GITHUB_TOKEN",
+        "GITHUB_OWNER",
+        "GITHUB_REPO",
+        "GITHUB_BRANCH",
+        "TELEGRAM_CHAT_ID"
+      ],
+      "publishesNothing": true
+    }
+  },
+  "tags": [],
+  "active": false
+}

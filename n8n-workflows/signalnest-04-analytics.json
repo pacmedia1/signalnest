@@ -1,0 +1,508 @@
+{
+  "name": "SignalNest 04 - Analytics And Reporting",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 17 * * 5"
+            }
+          ]
+        }
+      },
+      "id": "6b960940a7757e22ecc14e3e9a1c96e1d97f",
+      "name": "Weekly Analytics Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "3d4e8f652b2bdd1fb937ff5e6bfc67f6b438",
+      "name": "Manual Report Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar propertyId = String($env.GA4_PROPERTY_ID || '').trim();\nvar siteUrl = String($env.GSC_SITE_URL || '').trim();\nvar hasGoogleCredential = String($env.GOOGLE_OAUTH_CONFIGURED || '').toLowerCase() === 'true';\n\nvar availability = {\n  ga4: !!(propertyId && hasGoogleCredential),\n  gsc: !!(siteUrl && hasGoogleCredential)\n};\n\nreturn [{ json: {\n  availability: availability,\n  propertyId: propertyId,\n  siteUrl: siteUrl,\n  anyConfigured: availability.ga4 || availability.gsc,\n  note: availability.ga4 || availability.gsc\n    ? 'Requesting live analytics data.'\n    : 'No analytics credentials configured. The report will state clearly that data is unavailable rather than reporting zero.'\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "3a9adefa12b63bdf4f9fc1ea535646dce984",
+      "name": "Check Analytics Configuration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.anyConfigured }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e9f73aff0fc0c1c510e99dd6101c44bce147",
+      "name": "Analytics Configured?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        740,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar config = $input.first().json;\nvar lines = [\n  '# Weekly performance report',\n  '',\n  'Generated: ' + new Date().toISOString(),\n  '',\n  '## Status: analytics not configured',\n  '',\n  'No traffic figures are reported because GA4 and Search Console are not connected in this environment.',\n  'This is recorded as **unavailable**, not as zero. Reporting zero would be a fabricated result.',\n  '',\n  '## What is required',\n  '',\n  '| Requirement | Environment variable | Current state |',\n  '| --- | --- | --- |',\n  '| GA4 property ID | GA4_PROPERTY_ID | ' + (config.availability && config.propertyId ? 'set' : 'missing') + ' |',\n  '| Search Console property | GSC_SITE_URL | ' + (config.availability && config.siteUrl ? 'set' : 'missing') + ' |',\n  '| Google OAuth2 credential | GOOGLE_OAUTH_CONFIGURED=true | ' + (String($env.GOOGLE_OAUTH_CONFIGURED || '') === 'true' ? 'set' : 'missing') + ' |',\n  '',\n  '## Content opportunities you can act on without analytics',\n  '',\n  '1. Publish consistently in two or three categories rather than all seven at once.',\n  '2. Add internal links from every new article to at least two older articles.',\n  '3. Keep meta descriptions between 120 and 160 characters.',\n  '4. Submit the sitemap in Search Console once credentials exist so impressions can be measured.',\n  '',\n  '## Recommended next actions',\n  '',\n  '- Create a GA4 property and copy its measurement ID into the site configuration.',\n  '- Create a Google Cloud OAuth2 client with the Analytics Data API and Search Console API enabled.',\n  '- Set GA4_PROPERTY_ID, GSC_SITE_URL and GOOGLE_OAUTH_CONFIGURED=true on the n8n host.',\n  '- Re-run this workflow manually to confirm data flows before the next scheduled run.'\n].join('\\n');\n\nreturn [{ json: { reportMarkdown: lines, hasData: false, weekOf: new Date().toISOString().slice(0, 10) } }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "eac41ef940ee48bd346a54278fef73a8f74b",
+      "name": "Build Unavailable Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://analyticsdata.googleapis.com/v1beta/properties/{{ $json.propertyId }}:runReport",
+        "authentication": "predefinedCredentialType",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"dateRanges\":[{\"startDate\":\"7daysAgo\",\"endDate\":\"yesterday\"}],\"dimensions\":[{\"name\":\"pagePath\"},{\"name\":\"sessionDefaultChannelGroup\"}],\"metrics\":[{\"name\":\"screenPageViews\"},{\"name\":\"sessions\"},{\"name\":\"averageSessionDuration\"},{\"name\":\"engagementRate\"}],\"limit\":100,\"orderBys\":[{\"metric\":{\"metricName\":\"screenPageViews\"},\"desc\":true}]}"
+      },
+      "id": "754456770388baf982d5443a76ed32621b8b",
+      "name": "GA4 Run Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        140
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://searchconsole.googleapis.com/webmasters/v3/sites/{{ encodeURIComponent($env.GSC_SITE_URL) }}/searchAnalytics/query",
+        "authentication": "predefinedCredentialType",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"startDate\":\"={{ new Date(Date.now() - 7*86400000).toISOString().slice(0,10) }}\",\"endDate\":\"={{ new Date(Date.now() - 2*86400000).toISOString().slice(0,10) }}\",\"dimensions\":[\"query\",\"page\"],\"rowLimit\":100}"
+      },
+      "id": "bd9a421a920572feff5ae8e5abafd9005362",
+      "name": "GSC Search Analytics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        280
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar ga4Response = $('GA4 Run Report').first().json || {};\nvar gscResponse = $('GSC Search Analytics').first().json || {};\nvar config = $('Check Analytics Configuration').first().json;\n\nfunction asBody(response) {\n  var body = response.body;\n  if (typeof body === 'string') { try { return JSON.parse(body); } catch (e) { return null; } }\n  return body || null;\n}\n\nvar ga4Body = asBody(ga4Response);\nvar gscBody = asBody(gscResponse);\n\nvar ga4 = { available: false, reason: null, totals: null, topPages: [], channels: [] };\nif (!config.availability.ga4) {\n  ga4.reason = 'GA4 is not configured.';\n} else if (ga4Response.statusCode !== 200 || !ga4Body) {\n  ga4.reason = 'GA4 request failed with HTTP ' + ga4Response.statusCode + '. ' + String(JSON.stringify(ga4Body || {})).slice(0, 220);\n} else {\n  ga4.available = true;\n  var rows = ga4Body.rows || [];\n  var totals = { pageViews: 0, sessions: 0 };\n  var pages = {};\n  var channels = {};\n  rows.forEach(function (row) {\n    var path = row.dimensionValues && row.dimensionValues[0] ? row.dimensionValues[0].value : '(unknown)';\n    var channel = row.dimensionValues && row.dimensionValues[1] ? row.dimensionValues[1].value : '(unknown)';\n    var views = parseInt((row.metricValues && row.metricValues[0] && row.metricValues[0].value) || '0', 10);\n    var sessionCount = parseInt((row.metricValues && row.metricValues[1] && row.metricValues[1].value) || '0', 10);\n    totals.pageViews += views;\n    totals.sessions += sessionCount;\n    pages[path] = (pages[path] || 0) + views;\n    channels[channel] = (channels[channel] || 0) + sessionCount;\n  });\n  ga4.totals = { pageViews: totals.pageViews, sessions: totals.sessions };\n  ga4.topPages = Object.keys(pages).map(function (path) { return { path: path, views: pages[path] }; })\n    .sort(function (a, b) { return b.views - a.views; }).slice(0, 10);\n  ga4.channels = Object.keys(channels).map(function (name) { return { channel: name, sessions: channels[name] }; })\n    .sort(function (a, b) { return b.sessions - a.sessions; }).slice(0, 8);\n}\n\nvar gsc = { available: false, reason: null, clicks: null, impressions: null, ctr: null, position: null, topQueries: [], topPages: [] };\nif (!config.availability.gsc) {\n  gsc.reason = 'Search Console is not configured.';\n} else if (gscResponse.statusCode !== 200 || !gscBody) {\n  gsc.reason = 'Search Console request failed with HTTP ' + gscResponse.statusCode + '. ' + String(JSON.stringify(gscBody || {})).slice(0, 220);\n} else {\n  gsc.available = true;\n  var queryRows = gscBody.rows || [];\n  var clicks = 0, impressions = 0, positionSum = 0, positionWeight = 0;\n  queryRows.forEach(function (row) {\n    var rowClicks = row.clicks || 0;\n    var rowImpressions = row.impressions || 0;\n    clicks += rowClicks;\n    impressions += rowImpressions;\n    if (row.position) { positionSum += row.position * Math.max(rowImpressions, 1); positionWeight += Math.max(rowImpressions, 1); }\n  });\n  gsc.clicks = clicks;\n  gsc.impressions = impressions;\n  gsc.ctr = impressions ? Math.round((clicks / impressions) * 10000) / 100 : 0;\n  gsc.position = positionWeight ? Math.round((positionSum / positionWeight) * 10) / 10 : 0;\n  gsc.topQueries = queryRows.slice(0, 10).map(function (row) {\n    return {\n      query: row.keys && row.keys[0],\n      page: row.keys && row.keys[1],\n      clicks: row.clicks || 0,\n      impressions: row.impressions || 0,\n      position: row.position ? Math.round(row.position * 10) / 10 : null\n    };\n  });\n}\n\n/* Low-CTR / low-position opportunities: real data only, no invented benchmarks. */\nvar opportunities = [];\nif (gsc.available) {\n  gsc.topQueries.forEach(function (row) {\n    if (row.impressions >= 30 && row.clicks === 0) {\n      opportunities.push('Query \"' + row.query + '\" had ' + row.impressions + ' impressions and no clicks. Rewrite the title and meta description for that page.');\n    } else if (row.position && row.position > 10 && row.position < 21) {\n      opportunities.push('Query \"' + row.query + '\" sits at average position ' + row.position + '. Strengthen internal links and deepen that section.');\n    }\n  });\n}\n\nreturn [{ json: {\n  weekOf: new Date().toISOString().slice(0, 10),\n  availability: config.availability,\n  ga4: ga4,\n  gsc: gsc,\n  opportunities: opportunities.slice(0, 8),\n  hasData: ga4.available || gsc.available\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "59b7980b01eeb2603ed485d2c2ddf7abae41",
+      "name": "Normalise Analytics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar data = $input.first().json;\n\nfunction line(value, suffix) {\n  if (value === null || value === undefined) return 'unavailable';\n  return String(value) + (suffix || '');\n}\n\nvar out = [];\nout.push('# Weekly performance report');\nout.push('');\nout.push('Week ending: ' + data.weekOf);\nout.push('Generated: ' + new Date().toISOString());\nout.push('');\nout.push('> Unavailable values are reported as \"unavailable\", never as zero.');\nout.push('');\n\nout.push('## Traffic and engagement (GA4)');\nif (!data.ga4.available) {\n  out.push('');\n  out.push('**Unavailable.** ' + data.ga4.reason);\n} else {\n  out.push('');\n  out.push('| Metric | Value |');\n  out.push('| --- | --- |');\n  out.push('| Page views (7 days) | ' + line(data.ga4.totals.pageViews) + ' |');\n  out.push('| Sessions (7 days) | ' + line(data.ga4.totals.sessions) + ' |');\n  out.push('');\n  if (data.ga4.topPages.length) {\n    out.push('### Most visited pages');\n    out.push('');\n    data.ga4.topPages.forEach(function (page, index) {\n      out.push((index + 1) + '. ' + page.path + ' — ' + page.views + ' views');\n    });\n    out.push('');\n  } else {\n    out.push('No page rows were returned for the period.');\n    out.push('');\n  }\n  if (data.ga4.channels.length) {\n    out.push('### Sessions by channel');\n    out.push('');\n    data.ga4.channels.forEach(function (channel) {\n      out.push('- ' + channel.channel + ': ' + channel.sessions + ' sessions');\n    });\n    out.push('');\n  }\n}\n\nout.push('## Search performance (Search Console)');\nif (!data.gsc.available) {\n  out.push('');\n  out.push('**Unavailable.** ' + data.gsc.reason);\n} else {\n  out.push('');\n  out.push('| Metric | Value |');\n  out.push('| --- | --- |');\n  out.push('| Clicks | ' + line(data.gsc.clicks) + ' |');\n  out.push('| Impressions | ' + line(data.gsc.impressions) + ' |');\n  out.push('| Average CTR | ' + line(data.gsc.ctr, '%') + ' |');\n  out.push('| Average position | ' + line(data.gsc.position) + ' |');\n  out.push('');\n  if (data.gsc.topQueries.length) {\n    out.push('### Top queries');\n    out.push('');\n    out.push('| Query | Clicks | Impressions | Position |');\n    out.push('| --- | --- | --- | --- |');\n    data.gsc.topQueries.forEach(function (row) {\n      out.push('| ' + String(row.query).replace(/\\|/g, '/') + ' | ' + row.clicks + ' | ' + row.impressions + ' | ' + line(row.position) + ' |');\n    });\n    out.push('');\n  }\n}\n\nout.push('## Content opportunities');\nout.push('');\nif (data.opportunities && data.opportunities.length) {\n  data.opportunities.forEach(function (item) { out.push('- ' + item); });\n} else if (data.gsc.available) {\n  out.push('No query crossed the impression threshold used for automatic suggestions this week. Review the top-queries table manually.');\n} else {\n  out.push('Cannot be computed without Search Console data.');\n}\nout.push('');\n\nout.push('## Recommended next actions');\nout.push('');\nif (!data.hasData) {\n  out.push('1. Configure GA4 and Search Console credentials so this report contains measurements.');\n  out.push('2. Keep publishing and internal linking in the meantime; those are the inputs you control.');\n} else {\n  out.push('1. Act on the opportunity list above before writing new articles.');\n  out.push('2. Refresh the two highest-impression pages that convert worst.');\n  out.push('3. Add internal links from the top three visited pages to the weakest published article.');\n}\n\nreturn [{ json: {\n  reportMarkdown: out.join('\\n'),\n  hasData: data.hasData,\n  weekOf: data.weekOf,\n  ga4Available: data.ga4.available,\n  gscAvailable: data.gsc.available,\n  reportFile: 'content/analytics/weekly-' + data.weekOf + '.json'\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "4ff9f521e8435509f4a8d72c0a192d353ed9",
+      "name": "Build Weekly Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\n/* UTF-8 safe base64 (no Buffer / btoa dependency). */\nfunction base64Encode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var str = String(input === undefined || input === null ? '' : input);\n  var bytes = [];\n  for (var i = 0; i < str.length; i++) {\n    var code = str.codePointAt(i);\n    if (code > 0xffff) i++;\n    if (code < 0x80) bytes.push(code);\n    else if (code < 0x800) bytes.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));\n    else if (code < 0x10000) bytes.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n    else bytes.push(0xf0 | (code >> 18), 0x80 | ((code >> 12) & 0x3f), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));\n  }\n  var out = '';\n  for (var j = 0; j < bytes.length; j += 3) {\n    var b0 = bytes[j], b1 = bytes[j + 1], b2 = bytes[j + 2];\n    out += CH[b0 >> 2];\n    out += CH[((b0 & 3) << 4) | ((b1 || 0) >> 4)];\n    out += b1 === undefined ? '=' : CH[((b1 & 15) << 2) | ((b2 || 0) >> 6)];\n    out += b2 === undefined ? '=' : CH[b2 & 63];\n  }\n  return out;\n}\n\nfunction base64Decode(input) {\n  var CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';\n  var clean = String(input || '').replace(/[^A-Za-z0-9+/=]/g, '');\n  var bytes = [];\n  for (var i = 0; i < clean.length; i += 4) {\n    var c0 = CH.indexOf(clean[i]), c1 = CH.indexOf(clean[i + 1]);\n    var c2 = CH.indexOf(clean[i + 2]), c3 = CH.indexOf(clean[i + 3]);\n    if (c0 < 0 || c1 < 0) break;\n    bytes.push((c0 << 2) | (c1 >> 4));\n    if (c2 >= 0) bytes.push(((c1 & 15) << 4) | (c2 >> 2));\n    if (c3 >= 0) bytes.push(((c2 & 3) << 6) | c3);\n  }\n  var out = '';\n  for (var k = 0; k < bytes.length;) {\n    var b = bytes[k];\n    if (b < 0x80) { out += String.fromCharCode(b); k += 1; }\n    else if (b < 0xe0) { out += String.fromCharCode(((b & 0x1f) << 6) | (bytes[k + 1] & 0x3f)); k += 2; }\n    else if (b < 0xf0) { out += String.fromCharCode(((b & 0x0f) << 12) | ((bytes[k + 1] & 0x3f) << 6) | (bytes[k + 2] & 0x3f)); k += 3; }\n    else { var cp = ((b & 0x07) << 18) | ((bytes[k + 1] & 0x3f) << 12) | ((bytes[k + 2] & 0x3f) << 6) | (bytes[k + 3] & 0x3f); out += String.fromCodePoint(cp); k += 4; }\n  }\n  return out;\n}\n\nvar report = $input.first().json;\nvar payload = {\n  weekOf: report.weekOf,\n  generatedAt: new Date().toISOString(),\n  ga4Available: report.ga4Available,\n  gscAvailable: report.gscAvailable,\n  reportMarkdown: report.reportMarkdown\n};\nreturn [{ json: {\n  reportMarkdown: report.reportMarkdown,\n  hasData: report.hasData,\n  reportFile: report.reportFile,\n  githubPutBody: JSON.stringify({\n    message: 'chore(analytics): weekly report ' + report.weekOf,\n    content: base64Encode(JSON.stringify(payload, null, 2)),\n    branch: $env.GITHUB_BRANCH\n  })\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "50fa5275bb3a838ff79e8197082e6397d404",
+      "name": "Prepare Report File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/{{ $json.reportFile }}?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        }
+      },
+      "id": "c1883e88fa9d6aba9a8a3ed0c5e38fe21252",
+      "name": "Check Existing Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1940,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nvar read = $input.first().json || {};\nvar prepared = $('Prepare Report File').first().json;\nvar body = null;\ntry { body = JSON.parse(prepared.githubPutBody); } catch (e) { body = null; }\nif (body && read.statusCode === 200 && read.body && read.body.sha) body.sha = read.body.sha;\nreturn [{ json: {\n  reportMarkdown: prepared.reportMarkdown,\n  hasData: prepared.hasData,\n  githubPutBody: body ? JSON.stringify(body) : prepared.githubPutBody\n} }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "2a3e3c27a76c81403e8b7653f705e67023f1",
+      "name": "Attach Report Sha",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2180,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/{{ $env.GITHUB_OWNER }}/{{ $env.GITHUB_REPO }}/contents/{{ $(\"Prepare Report File\").first().json.reportFile }}?ref={{ $env.GITHUB_BRANCH }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.GITHUB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Automation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.githubPutBody }}"
+      },
+      "id": "5bcd3701e270e9c34a2e4414ce3d110206e7",
+      "name": "Save Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        140
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=📊 <b>Weekly performance report</b>\n\n{{ $(\"Prepare Report File\").first().json.reportMarkdown.slice(0, 3200) }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "id": "a1301b38fccec4859e64e442bafb645d8487",
+      "name": "Send Weekly Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2660,
+        140
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Weekly Analytics Schedule": {
+      "main": [
+        [
+          {
+            "node": "Check Analytics Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Report Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Analytics Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Analytics Configuration": {
+      "main": [
+        [
+          {
+            "node": "Analytics Configured?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analytics Configured?": {
+      "main": [
+        [
+          {
+            "node": "GA4 Run Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "GSC Search Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Unavailable Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GA4 Run Report": {
+      "main": [
+        [
+          {
+            "node": "Normalise Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GSC Search Analytics": {
+      "main": [
+        [
+          {
+            "node": "Normalise Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Unavailable Report": {
+      "main": [
+        [
+          {
+            "node": "Prepare Report File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalise Analytics": {
+      "main": [
+        [
+          {
+            "node": "Build Weekly Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Weekly Report": {
+      "main": [
+        [
+          {
+            "node": "Prepare Report File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Report File": {
+      "main": [
+        [
+          {
+            "node": "Check Existing Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Existing Report": {
+      "main": [
+        [
+          {
+            "node": "Attach Report Sha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach Report Sha": {
+      "main": [
+        [
+          {
+            "node": "Save Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Report": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "timezone": "Africa/Accra"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "signalnest": {
+      "purpose": "Weekly GA4 + Search Console report. Distinguishes unavailable data from zero and never fabricates figures.",
+      "requires": [
+        "GA4_PROPERTY_ID",
+        "GSC_SITE_URL",
+        "GOOGLE_OAUTH_CONFIGURED",
+        "Google OAuth2 credential",
+        "GITHUB_TOKEN",
+        "GITHUB_OWNER",
+        "GITHUB_REPO",
+        "GITHUB_BRANCH",
+        "TELEGRAM_CHAT_ID"
+      ],
+      "publishesNothing": true
+    }
+  },
+  "tags": [],
+  "active": false
+}
