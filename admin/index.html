@@ -73,10 +73,11 @@
       
       <p class="form-hint">Tokens are validated in constant time on the workflow server. Wrong tokens are rejected server-side.</p>
       
-      <div style="display: flex; gap: 10px; margin-top: 8px;">
-        <button type="submit" class="btn btn--primary">Connect to Webhook</button>
-        <button type="button" class="btn" id="btn-demo-mode">Inspect Local Dashboard</button>
+      <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
+        <button type="button" class="btn btn--primary" id="btn-demo-mode">Inspect Local Dashboard</button>
+        <button type="submit" class="btn" id="btn-webhook-submit">Connect to n8n Webhook</button>
       </div>
+      <p class="form-hint" style="margin-top: 8px;">💡 <b>Quick start:</b> Click <b>Inspect Local Dashboard</b> to open the overview, telemetry, and metrics immediately without connecting a webhook. Only connect to the webhook if you have imported Workflow 03 and turned its Active toggle ON in n8n.</p>
       <p class="form-status" id="auth-status" role="status" aria-live="polite"></p>
     </form>
   </section>
