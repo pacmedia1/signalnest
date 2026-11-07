@@ -9,6 +9,7 @@
     "validate": "node scripts/validate-content.js",
     "links": "node scripts/check-links.js",
     "workflows": "node scripts/build-workflows.js",
+    "test:n8n": "node scripts/test-n8n-environment.js",
     "test": "node scripts/build.js && node scripts/validate-content.js && node scripts/build-workflows.js && node scripts/test-suite.js && node scripts/check-links.js"
   },
   "engines": {
