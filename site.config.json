@@ -52,7 +52,13 @@
   },
   "ads": {
     "enabled": true,
-    "primaryNetwork": "adsense",
+    "primaryNetwork": "adsterra",
+    "placements": {
+      "header": "adsterra",
+      "inArticle": "adsterra",
+      "sidebar": "adsterra",
+      "footer": "adsterra"
+    },
     "adsense": {
       "client": "ca-pub-3926472012082566",
       "slots": {
@@ -77,16 +83,16 @@
       "headerScript": "",
       "invokeUrl": "",
       "placements": {
-        "header": "",
-        "inArticle": "",
-        "sidebar": "",
-        "footer": ""
+        "header": "1692209bedd08c68f87c75ae39bc77cf",
+        "inArticle": "37291413155c9addff5c0ac975d9d2e5",
+        "sidebar": "37291413155c9addff5c0ac975d9d2e5",
+        "footer": "1692209bedd08c68f87c75ae39bc77cf"
       },
       "snippets": {
-        "header": "",
-        "inArticle": "",
-        "sidebar": "",
-        "footer": ""
+        "header": "<script type=\"text/javascript\">\n  atOptions = {\n    'key' : '1692209bedd08c68f87c75ae39bc77cf',\n    'format' : 'iframe',\n    'height' : 60,\n    'width' : 468,\n    'params' : {}\n  };\n</script>\n<script type=\"text/javascript\" src=\"https://bauval.org/22/1692209bedd08c68f87c75ae39bc77cf\"></script>",
+        "inArticle": "<script type=\"text/javascript\">\n  atOptions = {\n    'key' : '37291413155c9addff5c0ac975d9d2e5',\n    'format' : 'iframe',\n    'height' : 250,\n    'width' : 300,\n    'params' : {}\n  };\n</script>\n<script type=\"text/javascript\" src=\"https://bauval.org/22/37291413155c9addff5c0ac975d9d2e5\"></script>",
+        "sidebar": "<script type=\"text/javascript\">\n  atOptions = {\n    'key' : '37291413155c9addff5c0ac975d9d2e5',\n    'format' : 'iframe',\n    'height' : 250,\n    'width' : 300,\n    'params' : {}\n  };\n</script>\n<script type=\"text/javascript\" src=\"https://bauval.org/22/37291413155c9addff5c0ac975d9d2e5\"></script>",
+        "footer": "<script type=\"text/javascript\">\n  atOptions = {\n    'key' : '1692209bedd08c68f87c75ae39bc77cf',\n    'format' : 'iframe',\n    'height' : 60,\n    'width' : 468,\n    'params' : {}\n  };\n</script>\n<script type=\"text/javascript\" src=\"https://bauval.org/22/1692209bedd08c68f87c75ae39bc77cf\"></script>"
       },
       "adsTxtLines": []
     },

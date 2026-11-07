@@ -43,7 +43,10 @@ loadEnv();
 
 function request(url, options = {}, body = null) {
   return new Promise((resolve, reject) => {
-    const req = https.request(url, options, (res) => {
+    const timeoutMs = options.timeout || 35000;
+    const req = https.request(url, Object.assign({
+      headers: { 'User-Agent': 'SignalNest-Diagnostic' }
+    }, options), (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -55,10 +58,12 @@ function request(url, options = {}, body = null) {
         }
       });
     });
-    req.on('error', reject);
-    req.setTimeout(options.timeout || 10000, () => {
+    req.on('error', (err) => {
+      reject(err);
+    });
+    req.setTimeout(timeoutMs, () => {
       req.destroy();
-      reject(new Error(`Timeout connecting to ${url}`));
+      reject(new Error(`Timeout after ${Math.round(timeoutMs/1000)}s connecting to ${url}`));
     });
     if (body) {
       req.write(typeof body === 'string' ? body : JSON.stringify(body));
