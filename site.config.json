@@ -74,8 +74,15 @@
     "adsterra": {
       "websiteId": "6182041",
       "key": "6182041",
+      "headerScript": "",
       "invokeUrl": "",
       "placements": {
+        "header": "",
+        "inArticle": "",
+        "sidebar": "",
+        "footer": ""
+      },
+      "snippets": {
         "header": "",
         "inArticle": "",
         "sidebar": "",

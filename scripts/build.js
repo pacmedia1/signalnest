@@ -234,6 +234,7 @@ function withLayout(pageCtx, contentHtml) {
     year: new Date().getUTCFullYear(),
     ga4Id: (SITE.analytics && SITE.analytics.ga4MeasurementId) || '',
     adsenseClient: (SITE.ads && SITE.ads.enabled && SITE.ads.adsense && SITE.ads.adsense.client) || (SITE.ads && SITE.ads.enabled && process.env.ADSENSE_CLIENT) || '',
+    adsterraHeaderScript: (SITE.ads && SITE.ads.enabled && SITE.ads.adsterra && SITE.ads.adsterra.headerScript) || '',
     headerAd: AD_SLOTS.header,
     footerAd: AD_SLOTS.footer
   };

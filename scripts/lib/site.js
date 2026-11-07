@@ -115,13 +115,16 @@ function renderAdSlot(position, config) {
   const slotId = ads.adsense && ads.adsense.slots ? ads.adsense.slots[position] || '' : '';
   const adsterraKey = (ads.adsterra && ads.adsterra.key) || process.env.ADSTERRA_KEY || '';
   const placement = ads.adsterra && ads.adsterra.placements ? ads.adsterra.placements[position] || '' : '';
+  const adsterraSnippet = ads.adsterra && ads.adsterra.snippets ? ads.adsterra.snippets[position] || '' : '';
   const admobPub = (ads.admob && ads.admob.publisherId) || process.env.ADMOB_PUB_ID || '';
   const admobSlot = ads.admob && ads.admob.slots ? ads.admob.slots[position] || '' : '';
 
   const network = (ads.placements && ads.placements[position]) || ads.primaryNetwork || 'adsense';
 
   let inner = '';
-  if (network === 'adsense' && client && slotId) {
+  if (adsterraSnippet) {
+    inner = adsterraSnippet;
+  } else if (network === 'adsense' && client && slotId) {
     inner = `<ins class="adsbygoogle" style="display:block" data-ad-client="${escapeAttr(client)}" data-ad-slot="${escapeAttr(slotId)}" data-ad-format="auto" data-full-width-responsive="true"></ins>
 <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>`;
   } else if (network === 'adsterra' && adsterraKey && placement) {
