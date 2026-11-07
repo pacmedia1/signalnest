@@ -16,7 +16,10 @@
       "name": "Every 6 Hours",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [200, 260]
+      "position": [
+        200,
+        260
+      ]
     },
     {
       "parameters": {},
@@ -24,7 +27,10 @@
       "name": "Test Workflow (Manual)",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [200, 420]
+      "position": [
+        200,
+        420
+      ]
     },
     {
       "parameters": {
@@ -37,7 +43,10 @@
       "name": "Fetch Latest News",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.1,
-      "position": [440, 340]
+      "position": [
+        440,
+        340
+      ]
     },
     {
       "parameters": {
@@ -47,7 +56,10 @@
       "name": "Prepare Article Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 340]
+      "position": [
+        660,
+        340
+      ]
     },
     {
       "parameters": {
@@ -64,17 +76,23 @@
       "name": "Gemini AI Generate Article",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 340]
+      "position": [
+        880,
+        340
+      ]
     },
     {
       "parameters": {
-        "jsCode": "var rawText = '';\ntry {\n  rawText = $input.first().json.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Gemini API response did not contain candidates: ' + JSON.stringify($input.first().json));\n}\n\nvar cleaned = rawText.replace(/^\\s*```(?:json)?/i, '').replace(/```\\s*$/, '').trim();\nvar article = JSON.parse(cleaned);\n\nvar slug = (article.title || 'article')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 75);\n\nvar words = String(article.content || '').replace(/<[^>]*>/g, ' ').split(/\\s+/).filter(Boolean).length;\nvar readingTime = Math.max(1, Math.round(words / 225));\nvar now = new Date().toISOString();\n\nvar cleanHeadline = String(article.title || '').replace(/['\"]/g, '').trim();\nvar imgPrompt = encodeURIComponent('editorial photography of ' + cleanHeadline + ', photorealistic, modern journalistic style, cinematic lighting, 8k, high quality editorial publication');\nvar realAiImageUrl = 'https://image.pollinations.ai/prompt/' + imgPrompt + '?width=1200&height=675&nologo=true';\n\nvar articlePayload = {\n  slug: slug,\n  title: article.title,\n  excerpt: article.excerpt || article.title,\n  description: String(article.excerpt || article.title).slice(0, 160),\n  content: article.content,\n  category: article.category || 'technology-ai',\n  image: realAiImageUrl,\n  imageAlt: article.title,\n  heroImage: realAiImageUrl,\n  heroImageAlt: article.title,\n  heroImageCaption: 'AI generated visual editorial representation of ' + cleanHeadline,\n  sources: article.sources || [],\n  readingTime: readingTime,\n  wordCount: words,\n  publishedAt: now,\n  approvedAt: now,\n  approvedBy: 'Christian Agbodzi',\n  reviewer: 'Christian Agbodzi',\n  approved: true,\n  status: 'published'\n};\n\nvar jsonString = JSON.stringify(articlePayload, null, 2);\nvar b64Content = Buffer.from(jsonString).toString('base64');\n\nreturn [{\n  json: {\n    slug: slug,\n    title: article.title,\n    readingTime: readingTime,\n    wordCount: words,\n    imageUrl: realAiImageUrl,\n    base64Content: b64Content,\n    url: 'https://signalnestnews.vercel.app/articles/' + slug\n  }\n}];"
+        "jsCode": "var rawText = '';\ntry {\n  rawText = $input.first().json.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Gemini API response did not contain candidates: ' + JSON.stringify($input.first().json));\n}\n\nvar cleaned = rawText.replace(/^\\s*```(?:json)?/i, '').replace(/```\\s*$/, '').trim();\nvar article = JSON.parse(cleaned);\n\nvar slug = (article.title || 'article')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 75);\n\nvar words = String(article.content || '').replace(/<[^>]*>/g, ' ').split(/\\s+/).filter(Boolean).length;\nvar readingTime = Math.max(1, Math.round(words / 225));\nvar now = new Date().toISOString();\n\nvar cleanHeadline = String(article.title || '').replace(/['\"]/g, '').trim();\nvar imgPrompt = encodeURIComponent('editorial photography of ' + cleanHeadline + ', photorealistic, modern journalistic style, cinematic lighting, 8k, high quality editorial publication');\nvar realAiImageUrl = 'https://image.pollinations.ai/prompt/' + imgPrompt + '?width=1200&height=675&nologo=true';\n\nvar sup1Prompt = encodeURIComponent('detailed diagrammatic and architectural view of ' + cleanHeadline + ', clean modern technical editorial style, photorealistic, 8k');\nvar sup1Url = 'https://image.pollinations.ai/prompt/' + sup1Prompt + '?width=1200&height=750&nologo=true';\n\nvar sup2Prompt = encodeURIComponent('practical real world execution and workplace synthesis of ' + cleanHeadline + ', modern office environment, cinematic lighting, photorealistic 8k');\nvar sup2Url = 'https://image.pollinations.ai/prompt/' + sup2Prompt + '?width=1200&height=750&nologo=true';\n\nvar articlePayload = {\n  slug: slug,\n  title: article.title,\n  excerpt: article.excerpt || article.title,\n  description: String(article.excerpt || article.title).slice(0, 160),\n  content: article.content,\n  category: article.category || 'technology-ai',\n  image: realAiImageUrl,\n  imageAlt: 'AI-generated editorial photography: ' + cleanHeadline,\n  heroImage: realAiImageUrl,\n  heroImageAlt: 'AI-generated editorial photography: ' + cleanHeadline,\n  heroImageCaption: 'AI Generated: Visual editorial overview of ' + cleanHeadline,\n  supportingImage1: sup1Url,\n  supportingImage1Alt: 'AI-generated editorial photography: Methodology and breakdown for ' + cleanHeadline,\n  supportingImage1Caption: 'AI Generated: Technical breakdown and core mechanics.',\n  supportingImage2: sup2Url,\n  supportingImage2Alt: 'AI-generated editorial photography: Practical implementation of ' + cleanHeadline,\n  supportingImage2Caption: 'AI Generated: Real-world synthesis and operational impact.',\n  sources: article.sources || [],\n  readingTime: readingTime,\n  wordCount: words,\n  publishedAt: now,\n  approvedAt: now,\n  approvedBy: 'Christian Agbodzi',\n  reviewer: 'Christian Agbodzi',\n  approved: true,\n  status: 'published',\n  visuallyComplete: true\n};\n\nvar jsonString = JSON.stringify(articlePayload, null, 2);\nvar b64Content = Buffer.from(jsonString).toString('base64');\n\nreturn [{\n  json: {\n    slug: slug,\n    title: article.title,\n    readingTime: readingTime,\n    wordCount: words,\n    imageUrl: realAiImageUrl,\n    base64Content: b64Content,\n    url: 'https://signalnestnews.vercel.app/articles/' + slug\n  }\n}];"
       },
       "id": "node-format-article",
       "name": "Format Article & Build JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 340]
+      "position": [
+        1100,
+        340
+      ]
     },
     {
       "parameters": {
@@ -106,7 +124,10 @@
       "name": "Commit to GitHub (Auto-Deploy)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, 340]
+      "position": [
+        1320,
+        340
+      ]
     },
     {
       "parameters": {
@@ -121,7 +142,10 @@
       "name": "Send Telegram Alert",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1540, 340]
+      "position": [
+        1540,
+        340
+      ]
     }
   ],
   "connections": {

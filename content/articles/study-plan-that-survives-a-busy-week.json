@@ -22,9 +22,9 @@
   "reviewer": "Christian Agbodzi",
   "publishedAt": "2026-11-02T07:00:00Z",
   "updatedAt": null,
-  "heroImage": "/assets/images/articles/study-plan-that-survives-a-busy-week/featured.svg",
-  "heroImageAlt": "Editorial visual representation of How to Build a Study Plan That Survives a Busy Week focusing on study",
-  "heroImageCaption": "Conceptual overview: study in perspective.",
+  "heroImage": "https://image.pollinations.ai/prompt/editorial%20photography%20of%20organized%20study%20desk%20for%20busy%20professionals%20digital%20tablet%20with%20calendar%20timeblocks%20warm%20desk%20lamp%20photorealistic%208k?width=1200&height=675&nologo=true",
+  "heroImageAlt": "AI-generated editorial photography: Structured evening study desk with tablet timeblocks and books",
+  "heroImageCaption": "AI Generated: Designing sustainable learning habits for demanding professional schedules.",
   "content": "<p>Most study plans fail for an administrative reason, not a motivational one. The plan assumed a week with no interruptions, no transport delays and no tired evenings. A plan that survives real life has to be built out of the time that actually exists.</p>\n\n<h2>Step one: count real hours, not ideal hours</h2>\n<p>Take the coming week and write down the hours you genuinely control. Be specific and slightly pessimistic: the hour after dinner when you are usually tired counts as half. If you claim fourteen study hours and you reliably have six, you are not planning, you are writing fiction that you will feel guilty about on Friday.</p>\n<p>Two useful tests for whether an hour is real:</p>\n<ul>\n<li>You can name the place you will be during it.</li>\n<li>Nothing else routinely claims it. If something does, it is not a study hour.</li>\n</ul>\n\n<h2>Step two: decide what \"done\" looks like before you start</h2>\n<p>\"Study chapter four\" is not a task, it is a mood. \"Close the book and write the five main claims of chapter four from memory, then check them\" is a task, because you can tell whether you finished.</p>\n<p>Write each unit so it has three parts: the material, the output, and the check. Output can be a page of notes, a solved problem set, a diagram from memory, or five recorded questions you could not answer. The check is how you find out whether the output was right.</p>\n\n<h2>Step three: put the hardest work where your attention is best</h2>\n<p>Most people have a reliable window of high attention, usually earlier than they would like. Put the work that needs reasoning there, and move passive work like re-reading, organising notes or watching a lecture to the low-attention slots. This single swap produces more improvement than adding hours.</p>\n\n<h2>Step four: plan retrieval, not re-reading</h2>\n<p>Re-reading feels productive and mostly measures familiarity with the page layout. Retrieval practice, where you try to recall the material without looking, is uncomfortable precisely because it is doing the work. A practical ratio for a one-hour block:</p>\n<ol>\n<li>Fifteen minutes: read or watch the material once, actively.</li>\n<li>Five minutes: close everything and write what you remember, including the gaps.</li>\n<li>Fifteen minutes: check against the source and correct your notes in a different colour.</li>\n<li>Twenty minutes: attempt questions or problems using the corrected notes.</li>\n<li>Five minutes: write the three things you will test yourself on tomorrow.</li>\n</ol>\n<p>The written gaps are the most valuable output of the hour, because they are the exact list of what your next session should attack.</p>\n\n<h2>Step five: build in a recovery slot, not just slack</h2>\n<p>A recovery slot is a planned, empty study block that you are allowed to fill with whatever fell behind. Without one, the first missed session collapses the whole week, because every subsequent slot is already allocated. With one, a bad Tuesday costs you nothing.</p>\n<p>Put the recovery slot on the lightest day, not the last day. A slot on the final day cannot rescue the final day.</p>\n\n<h2>Step six: keep the plan visible and one page long</h2>\n<p>If the plan does not fit on one page, it is a wish list. One page, six to ten blocks, each labelled with its output. Put it where you will see it when you sit down, not in an app you have to remember to open.</p>\n\n<h2>What to do when the week goes wrong anyway</h2>\n<p>It will. The useful response is a triage rule decided in advance, not a fresh re-plan at the moment of stress. A simple one:</p>\n<ul>\n<li>Keep the blocks that feed the nearest deadline or the weakest topic.</li>\n<li>Drop anything that is passive review. It is the cheapest thing to lose.</li>\n<li>Never drop the retrieval step from a block whose material you have already read.</li>\n</ul>\n\n<h2>Reviewing the week in five minutes</h2>\n<p>At the end of the week, answer three questions in writing: which blocks actually happened, which output was accurate, and what will you do differently next week. Then change one thing, not five. A plan that is adjusted in one place each week stays alive; a plan that is rebuilt from scratch every Monday gets abandoned by the third week.</p>\n\n<h2>Bottom line</h2>\n<p>A durable study plan is small, specific and slightly pessimistic about time. Count real hours, define completion as an output you can check, put difficult work in your best window, test yourself instead of re-reading, and protect one recovery slot. That is more than enough to make steady progress in a week that does not go to plan.</p>",
   "sources": [
     {
@@ -50,12 +50,12 @@
     "notes": "Seed article, human-written and reviewed. Replace or keep.",
     "revision": 1
   },
-  "supportingImage1": "/assets/images/articles/study-plan-that-survives-a-busy-week/supporting1.svg",
-  "supportingImage1Alt": "Diagram illustrating output and key workflow components",
-  "supportingImage1Caption": "Core mechanics: breakdown of output.",
-  "supportingImage2": "/assets/images/articles/study-plan-that-survives-a-busy-week/supporting2.svg",
-  "supportingImage2Alt": "Visual synthesis depicting hours and implementation results",
-  "supportingImage2Caption": "Synthesis and outcomes: practical impact of hours.",
+  "supportingImage1": "https://image.pollinations.ai/prompt/weekly%20habit%20tracking%20journal%20and%20review%20dashboard%20on%20tablet%20screen%20warm%20wood%20desk%20photorealistic%208k?width=1200&height=750&nologo=true",
+  "supportingImage1Alt": "AI-generated editorial photography: Habit tracking metrics and progress dashboard for weekly study goals",
+  "supportingImage1Caption": "AI Generated: Weekly retrospectives to adjust study targets before burnout occurs.",
+  "supportingImage2": "https://image.pollinations.ai/prompt/professional%20engaged%20in%20deep%20focused%20technical%20study%20in%20serene%20library%20photorealistic%208k?width=1200&height=750&nologo=true",
+  "supportingImage2Alt": "AI-generated editorial photography: Professional student engaged in focused technical study session",
+  "supportingImage2Caption": "AI Generated: Spaced repetition and active recall applied across compressed schedules.",
   "images": [
     {
       "index": 1,
@@ -99,12 +99,12 @@
   ],
   "visuallyComplete": true,
   "visualIdentity": {
-    "provider": "editorial-svg",
-    "style": "abstract-editorial",
+    "provider": "pollinations-flux-ai",
+    "style": "photorealistic-editorial",
     "accent": "#F28C28",
     "secondaryAccent": "#FF9F43",
-    "darkBg": "#171717",
-    "lightBg": "#FFF7ED",
-    "generatedAt": "2026-11-07T06:11:04.904Z"
-  }
+    "generatedAt": "2026-11-07T11:50:30.869Z"
+  },
+  "image": "https://image.pollinations.ai/prompt/editorial%20photography%20of%20organized%20study%20desk%20for%20busy%20professionals%20digital%20tablet%20with%20calendar%20timeblocks%20warm%20desk%20lamp%20photorealistic%208k?width=1200&height=675&nologo=true",
+  "imageAlt": "AI-generated editorial photography: Structured evening study desk with tablet timeblocks and books"
 }
