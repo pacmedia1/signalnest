@@ -130,12 +130,15 @@ function renderAdSlot(position, config) {
   } else if (network === 'admob' && admobPub) {
     inner = `<ins class="adsbygoogle" style="display:inline-block;width:100%;min-height:50px" data-ad-client="${escapeAttr(admobPub)}" ${admobSlot ? `data-ad-slot="${escapeAttr(admobSlot)}"` : ''} data-ad-format="auto" data-full-width-responsive="true"></ins>
 <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>`;
+  } else if (network === 'adsense' && client) {
+    inner = '<span>Google AdSense Auto-Ads active</span>';
   } else {
     inner = '<span>Reserved advertising space. Configure ad network credentials in owner dashboard to activate.</span>';
   }
 
   const modifier = position === 'inArticle' ? 'in-article' : position;
-  return `<aside class="ad-slot ad-slot--${modifier}${inner.includes('Reserved') ? ' ad-slot--empty' : ''}" aria-label="${labels[position] || 'Advertisement'}" data-ad-position="${escapeAttr(position)}">
+  const isEmpty = inner.includes('Reserved') || inner.includes('Auto-Ads');
+  return `<aside class="ad-slot ad-slot--${modifier}${isEmpty ? ' ad-slot--empty' : ''}" aria-label="${labels[position] || 'Advertisement'}" data-ad-position="${escapeAttr(position)}">
 <style>.ad-slot--${modifier}{contain:layout;}</style>
 <span class="ad-slot__label">${labels[position] || 'Advertisement'}</span>
 <div class="ad-slot__inner">${inner}</div>

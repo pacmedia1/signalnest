@@ -51,10 +51,38 @@
     "note": "Leave empty to ship zero analytics scripts. Set to G-XXXXXXXXXX when you have a real GA4 property."
   },
   "ads": {
-    "enabled": false,
+    "enabled": true,
     "primaryNetwork": "adsense",
-    "adsense": { "client": "", "slots": { "header": "", "inArticle": "", "sidebar": "", "footer": "" } },
-    "adsterra": { "key": "", "invokeUrl": "", "placements": { "header": "", "inArticle": "", "sidebar": "", "footer": "" } },
+    "adsense": {
+      "client": "ca-pub-3926472012082566",
+      "slots": {
+        "header": "",
+        "inArticle": "",
+        "sidebar": "",
+        "footer": ""
+      }
+    },
+    "admob": {
+      "publisherId": "ca-pub-3926472012082566",
+      "slots": {
+        "header": "",
+        "inArticle": "",
+        "sidebar": "",
+        "footer": ""
+      }
+    },
+    "adsterra": {
+      "websiteId": "6182041",
+      "key": "6182041",
+      "invokeUrl": "",
+      "placements": {
+        "header": "",
+        "inArticle": "",
+        "sidebar": "",
+        "footer": ""
+      },
+      "adsTxtLines": []
+    },
     "policy": {
       "noIncentivisedClicks": true,
       "noAutomatedTraffic": true,

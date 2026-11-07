@@ -608,7 +608,7 @@
         </div>
         <div style="display: flex; align-items: center; gap: 12px;">
           <label style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer;">
-            <input type="checkbox" id="ad-global-toggle" style="width: 18px; height: 18px; accent-color: var(--primary-orange);"> Enable Ad Units
+            <input type="checkbox" id="ad-global-toggle" checked style="width: 18px; height: 18px; accent-color: var(--primary-orange);"> Enable Ad Units
           </label>
         </div>
       </div>
@@ -626,7 +626,7 @@
 
           <div class="form-row">
             <label for="ad-adsense-client">Publisher Client ID</label>
-            <input id="ad-adsense-client" type="text" placeholder="ca-pub-XXXXXXXXXXXXXXXX" spellcheck="false">
+            <input id="ad-adsense-client" type="text" value="ca-pub-3926472012082566" placeholder="ca-pub-XXXXXXXXXXXXXXXX" spellcheck="false">
             <span class="form-hint">Matches your AdSense account ID. Written to <code>ads.txt</code> automatically.</span>
           </div>
 
@@ -658,7 +658,7 @@
 
           <div class="form-row">
             <label for="ad-admob-pub">AdMob Publisher ID</label>
-            <input id="ad-admob-pub" type="text" placeholder="pub-XXXXXXXXXXXXXXXX" spellcheck="false">
+            <input id="ad-admob-pub" type="text" value="pub-3926472012082566" placeholder="pub-XXXXXXXXXXXXXXXX" spellcheck="false">
             <span class="form-hint">Used for <code>app-ads.txt</code> app store ownership verification.</span>
           </div>
 
@@ -689,8 +689,8 @@
           <p style="font-size: 0.78rem; color: var(--muted); margin: 0; line-height: 1.5;">Direct invocation scripts and high-fill native banners for global impressions.</p>
 
           <div class="form-row">
-            <label for="ad-adsterra-key">Adsterra Account / Domain Key</label>
-            <input id="ad-adsterra-key" type="text" placeholder="e.g. 1a2b3c4d" spellcheck="false">
+            <label for="ad-adsterra-key">Adsterra Account / Website ID</label>
+            <input id="ad-adsterra-key" type="text" value="6182041" placeholder="e.g. 6182041" spellcheck="false">
           </div>
 
           <div class="form-row">
@@ -725,12 +725,12 @@
             <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">Web ads.txt (/ads.txt)</span>
             <pre style="background: #0f0f10; color: #e4e4e7; padding: 12px; border-radius: var(--radius-sm); font-size: 0.74rem; line-height: 1.5; max-height: 120px; overflow-y: auto; margin-top: 4px;" id="preview-ads-txt"># ads.txt for SignalNest
 # Authorised digital sellers only.
-# No Google AdSense/AdMob publisher ID configured.</pre>
+google.com, pub-3926472012082566, DIRECT, f08c47fec0942fa0</pre>
           </div>
           <div>
             <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">Mobile app-ads.txt (/app-ads.txt)</span>
             <pre style="background: #0f0f10; color: #e4e4e7; padding: 12px; border-radius: var(--radius-sm); font-size: 0.74rem; line-height: 1.5; max-height: 120px; overflow-y: auto; margin-top: 4px;" id="preview-app-ads-txt"># app-ads.txt for SignalNest (Google AdMob)
-# No Google AdMob publisher ID configured.</pre>
+google.com, pub-3926472012082566, DIRECT, f08c47fec0942fa0</pre>
           </div>
         </div>
 

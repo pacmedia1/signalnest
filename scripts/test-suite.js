@@ -732,7 +732,13 @@ test('robots.txt blocks admin and data, and points at the sitemap', () => {
 
 test('ads.txt contains no fabricated publisher id', () => {
   const ads = fs.readFileSync(path.join(DIST, 'ads.txt'), 'utf8');
-  assert(!/pub-\d{16}/.test(ads) || /ADSENSE_CLIENT/.test(process.env.ADSENSE_CLIENT || ''), 'ads.txt appears to contain an invented publisher id');
+  const siteConfig = JSON.parse(fs.readFileSync(path.join(ROOT, 'site.config.json'), 'utf8'));
+  const configuredClient = (siteConfig.ads && siteConfig.ads.adsense && siteConfig.ads.adsense.client) || process.env.ADSENSE_CLIENT || '';
+  if (!configuredClient) {
+    assert(!/pub-\d{16}/.test(ads), 'ads.txt appears to contain an unconfigured or invented publisher id');
+  } else {
+    assert(ads.includes(configuredClient.replace('ca-', '')), 'ads.txt is missing configured publisher id');
+  }
 });
 
 test('sitemap is well-formed XML', () => {
