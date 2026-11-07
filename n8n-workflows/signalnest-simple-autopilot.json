@@ -1,6 +1,22 @@
 {
-  "name": "SignalNest - Simple Autopilot (Clean 7-Node Edition)",
+  "name": "SignalNest - Autopilot with Telegram Bot Trigger",
   "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "node-telegram-trigger",
+      "name": "Telegram Bot Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        180,
+        140
+      ]
+    },
     {
       "parameters": {
         "rule": {
@@ -17,8 +33,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        200,
-        260
+        180,
+        300
       ]
     },
     {
@@ -28,13 +44,26 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        200,
-        420
+        180,
+        460
       ]
     },
     {
       "parameters": {
-        "url": "={{ $env.RSS_FEED_URL || 'https://feeds.bbci.co.uk/news/technology/rss.xml' }}",
+        "jsCode": "var item = $input.first().json || {};\nvar text = '';\nvar chatId = '7785938669';\nvar isTelegram = false;\n\nif (item.message && item.message.text) {\n  isTelegram = true;\n  text = String(item.message.text || '').trim();\n  if (item.message.chat && item.message.chat.id) {\n    chatId = String(item.message.chat.id);\n  }\n  // Security: Only allow authorized chat\n  if (chatId !== '7785938669') {\n    throw new Error('Unauthorized Telegram sender ID: ' + chatId);\n  }\n}\n\nvar targetCategory = 'technology-ai';\nvar feedUrl = 'https://feeds.bbci.co.uk/news/technology/rss.xml';\nvar customTopic = '';\n\nvar lower = text.toLowerCase();\nif (lower.indexOf('business') !== -1) {\n  targetCategory = 'business';\n  feedUrl = 'https://feeds.bbci.co.uk/news/business/rss.xml';\n} else if (lower.indexOf('education') !== -1) {\n  targetCategory = 'education';\n  feedUrl = 'https://feeds.bbci.co.uk/news/education/rss.xml';\n} else if (lower.indexOf('lifestyle') !== -1 || lower.indexOf('health') !== -1) {\n  targetCategory = 'lifestyle';\n  feedUrl = 'https://feeds.bbci.co.uk/news/health/rss.xml';\n} else if (lower.indexOf('software') !== -1 || lower.indexOf('tutorial') !== -1) {\n  targetCategory = 'software-tutorials';\n  feedUrl = 'https://feeds.arstechnica.com/arstechnica/index';\n} else if (lower.startsWith('/publish ') && lower.length > 9) {\n  customTopic = text.slice(9).trim();\n}\n\nreturn [{\n  json: {\n    isTelegram: isTelegram,\n    chatId: chatId,\n    commandText: text,\n    customTopic: customTopic,\n    targetCategory: targetCategory,\n    feedUrl: feedUrl\n  }\n}];"
+      },
+      "id": "node-route-trigger",
+      "name": "Parse Command & Pick Category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Parse Command & Pick Category').first().json.feedUrl || 'https://feeds.bbci.co.uk/news/technology/rss.xml' }}",
         "options": {
           "ignoreSSLIssues": false
         }
@@ -44,21 +73,21 @@
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.1,
       "position": [
-        440,
-        340
+        640,
+        300
       ]
     },
     {
       "parameters": {
-        "jsCode": "var item = $input.first().json;\nvar title = String(item.title || 'Latest News Development').trim();\nvar link = String(item.link || 'https://www.bbc.co.uk/news').trim();\nvar snippet = String(item.contentSnippet || item.content || item.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 400);\n\n/* Extract real web news image from feed (enclosure, media:thumbnail, media:content, or img tag) */\nvar realWebImage = '';\nif (item['media:thumbnail']) {\n  if (typeof item['media:thumbnail'] === 'string') realWebImage = item['media:thumbnail'];\n  else if (item['media:thumbnail'].$ && item['media:thumbnail'].$.url) realWebImage = item['media:thumbnail'].$.url;\n  else if (item['media:thumbnail'].url) realWebImage = item['media:thumbnail'].url;\n}\nif (!realWebImage && item.enclosure && item.enclosure.url) realWebImage = item.enclosure.url;\nif (!realWebImage && item['media:content']) {\n  if (item['media:content'].$ && item['media:content'].$.url) realWebImage = item['media:content'].$.url;\n  else if (item['media:content'].url) realWebImage = item['media:content'].url;\n}\nif (!realWebImage) {\n  var imgMatch = String(item.content || item.description || '').match(/<img[^>]+src=[\"'](https?:\\/\\/[^\"']+)[\"']/i);\n  if (imgMatch && imgMatch[1]) realWebImage = imgMatch[1];\n}\n\n/* High-res enhancement for BBC iChef (upgrade 240/ to 976/) */\nif (realWebImage && realWebImage.indexOf('ichef.bbci.co.uk') !== -1) {\n  realWebImage = realWebImage.replace(/\\/standard\\/\\d+\\//, '/standard/976/');\n}\n\nvar sourceDomain = 'News Coverage';\ntry { sourceDomain = new URL(link).hostname.replace(/^www\\./, ''); } catch (e) {}\n\n/* High-Traffic SEO Prompt for Google Page 1 ranking */\nvar prompt = 'You are a master SEO journalist and web publisher for SignalNest. Write a comprehensive, high-traffic, SEO-dominant educational guide (900-1200 words) based on this news story:\\\\n\\\\n' +\n'Title: ' + title + '\\\\n' +\n'Summary: ' + snippet + '\\\\n' +\n'Source URL: ' + link + '\\\\n\\\\n' +\n'SEO & CONTENT GUIDELINES (Strict):\\\\n' +\n'1. Title: Under 65 characters, high search volume query, includes primary keyword near front.\\\\n' +\n'2. Description: 140-155 characters meta description with compelling search hook.\\\\n' +\n'3. Category: Must be exactly one of: [\"technology-ai\", \"business\", \"education\", \"lifestyle\", \"software-tutorials\", \"digital-skills\", \"internet-trends\"].\\\\n' +\n'4. Tags: 5-6 high search volume long-tail keywords.\\\\n' +\n'5. Body HTML:\\\\n' +\n'   - Opening Lead: 40-50 words directly answering the core query (optimized for Google Featured Snippets and AI Overviews).\\\\n' +\n'   - Informative <h2> and <h3> subheadings covering mechanics, causes, analysis, and future outlook.\\\\n' +\n'   - A structured bullet list or summary breakdown of key takeaways.\\n' +\n'   - A dedicated <h2>Frequently Asked Questions</h2> section with 3-4 common questions using <h3> and <p>.\\\\n' +\n'   - Word count: 850 to 1250 words of authoritative, engaging prose.\\\\n\\\\n' +\n'Respond ONLY with valid JSON in this exact structure (no markdown fences, no extra text):\\\\n' +\n'{\\\\n' +\n'  \"title\": \"Clear SEO Title (under 65 chars)\",\\\\n' +\n'  \"excerpt\": \"2 sentence engaging summary\",\\\\n' +\n'  \"description\": \"140-155 char meta description\",\\\\n' +\n'  \"category\": \"technology-ai\",\\\\n' +\n'  \"tags\": [\"keyword1\", \"keyword2\", \"keyword3\", \"keyword4\", \"keyword5\"],\\\\n' +\n'  \"content\": \"<p class=\\\\\"lead\\\\\">Direct answer lead...</p><h2>...</h2><p>...</p><h2>Frequently Asked Questions</h2><h3>...</h3><p>...</p>\",\\\\n' +\n'  \"sources\": [{\"title\": \"' + sourceDomain + ' News Report\", \"url\": \"' + link + '\"}]\\\\n' +\n'}';\n\nreturn [{ json: { originalTitle: title, originalLink: link, realWebImage: realWebImage, sourceDomain: sourceDomain, prompt: prompt } }];"
+        "jsCode": "var item = $input.first().json;\nvar routeData = $('Parse Command & Pick Category').first().json || {};\nvar customTopic = String(routeData.customTopic || '').trim();\n\nvar title = customTopic || String(item.title || 'Latest Emerging Development').trim();\nvar link = customTopic ? 'https://signalnestnews.vercel.app' : String(item.link || 'https://www.bbc.co.uk/news').trim();\nvar snippet = customTopic ? ('In-depth analysis and comprehensive educational breakdown of ' + customTopic) : String(item.contentSnippet || item.content || item.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 400);\n\n/* Extract real web news image from feed */\nvar realWebImage = '';\nif (item['media:thumbnail']) {\n  if (typeof item['media:thumbnail'] === 'string') realWebImage = item['media:thumbnail'];\n  else if (item['media:thumbnail'].$ && item['media:thumbnail'].$.url) realWebImage = item['media:thumbnail'].$.url;\n  else if (item['media:thumbnail'].url) realWebImage = item['media:thumbnail'].url;\n}\nif (!realWebImage && item.enclosure && item.enclosure.url) realWebImage = item.enclosure.url;\nif (!realWebImage && item['media:content']) {\n  if (item['media:content'].$ && item['media:content'].$.url) realWebImage = item['media:content'].$.url;\n  else if (item['media:content'].url) realWebImage = item['media:content'].url;\n}\nif (!realWebImage) {\n  var imgMatch = String(item.content || item.description || '').match(/<img[^>]+src=[\"'](https?:\\/\\/[^\"']+)[\"']/i);\n  if (imgMatch && imgMatch[1]) realWebImage = imgMatch[1];\n}\n\nif (realWebImage && realWebImage.indexOf('ichef.bbci.co.uk') !== -1) {\n  realWebImage = realWebImage.replace(/\\/standard\\/\\d+\\//, '/standard/976/');\n}\n\nvar sourceDomain = 'News Coverage';\ntry { sourceDomain = new URL(link).hostname.replace(/^www\\./, ''); } catch (e) {}\n\n/* Ultra High-Traffic SEO Prompt for Gemini */\nvar prompt = 'You are a master SEO journalist and web publisher for SignalNest. Write a comprehensive, high-traffic, SEO-dominant educational guide (900-1200 words) based on this news story:\\\\n\\\\n' +\n'Title: ' + title + '\\\\n' +\n'Summary: ' + snippet + '\\\\n' +\n'Source URL: ' + link + '\\\\n\\\\n' +\n'SEO & CONTENT GUIDELINES (Strict):\\\\n' +\n'1. Title: Under 65 characters, high search volume query, includes primary keyword near front.\\\\n' +\n'2. Description: 140-155 characters meta description with compelling search hook.\\\\n' +\n'3. Category: Must be exactly one of: [\"technology-ai\", \"business\", \"education\", \"lifestyle\", \"software-tutorials\", \"digital-skills\", \"internet-trends\"]. Default to \"' + routeData.targetCategory + '\" if matching.\\\\n' +\n'4. Tags: 5-6 high search volume long-tail keywords.\\\\n' +\n'5. Body HTML:\\\\n' +\n'   - Opening Lead: 40-50 words directly answering the core query (optimized for Google Featured Snippets and AI Overviews).\\\\n' +\n'   - Informative <h2> and <h3> subheadings covering mechanics, causes, analysis, and future outlook.\\\\n' +\n'   - A structured bullet list or summary breakdown of key takeaways.\\\\n' +\n'   - A dedicated <h2>Frequently Asked Questions</h2> section with 3-4 common questions using <h3> and <p>.\\\\n' +\n'   - Word count: 850 to 1250 words of authoritative, engaging prose.\\\\n\\\\n' +\n'Respond ONLY with valid JSON in this exact structure (no markdown fences, no extra text):\\\\n' +\n'{\\\\n' +\n'  \"title\": \"Clear SEO Title (under 65 chars)\",\\\\n' +\n'  \"excerpt\": \"2 sentence engaging summary\",\\\\n' +\n'  \"description\": \"140-155 char meta description\",\\\\n' +\n'  \"category\": \"' + routeData.targetCategory + '\",\\\\n' +\n'  \"tags\": [\"keyword1\", \"keyword2\", \"keyword3\", \"keyword4\", \"keyword5\"],\\\\n' +\n'  \"content\": \"<p class=\\\\\"lead\\\\\">Direct answer lead...</p><h2>...</h2><p>...</p><h2>Frequently Asked Questions</h2><h3>...</h3><p>...</p>\",\\\\n' +\n'  \"sources\": [{\"title\": \"' + sourceDomain + ' News Report\", \"url\": \"' + link + '\"}]\\\\n' +\n'}';\n\nreturn [{ json: { originalTitle: title, originalLink: link, realWebImage: realWebImage, sourceDomain: sourceDomain, prompt: prompt } }];"
       },
       "id": "node-prepare-prompt",
       "name": "Prepare Article Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        660,
-        340
+        860,
+        300
       ]
     },
     {
@@ -77,21 +106,21 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        880,
-        340
+        1080,
+        300
       ]
     },
     {
       "parameters": {
-        "jsCode": "var rawText = '';\ntry {\n  rawText = $input.first().json.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Gemini API response did not contain candidates: ' + JSON.stringify($input.first().json));\n}\n\nvar cleaned = rawText.replace(/^\\s*```(?:json)?/i, '').replace(/```\\s*$/, '').trim();\nvar article = JSON.parse(cleaned);\n\nvar slug = (article.title || 'article')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 75);\n\nvar words = String(article.content || '').replace(/<[^>]*>/g, ' ').split(/\\s+/).filter(Boolean).length;\nvar readingTime = Math.max(1, Math.round(words / 225));\nvar now = new Date().toISOString();\n\n/* Hybrid Image Selection: Real Web News Photo (if present) OR Real AI Generation */\nvar prepData = $('Prepare Article Prompt').first().json || {};\nvar realWebImage = String(prepData.realWebImage || '').trim();\nvar sourceDomain = String(prepData.sourceDomain || 'Web News');\nvar cleanHeadline = String(article.title || '').replace(/['\"]/g, '').trim();\n\nvar heroImageUrl = '';\nvar heroImageAlt = '';\nvar heroImageCaption = '';\nvar imageSourceType = '';\n\nif (realWebImage && realWebImage.startsWith('http')) {\n  heroImageUrl = realWebImage;\n  heroImageAlt = cleanHeadline + ' - Authentic news press photo via ' + sourceDomain;\n  heroImageCaption = 'Authentic editorial press photography via ' + sourceDomain + ' news reporting.';\n  imageSourceType = 'Authentic Web Press Photo';\n} else {\n  var imgPrompt = encodeURIComponent('editorial photography of ' + cleanHeadline + ', photorealistic, modern journalistic style, cinematic lighting, 8k, high quality editorial publication');\n  heroImageUrl = 'https://image.pollinations.ai/prompt/' + imgPrompt + '?width=1200&height=675&nologo=true';\n  heroImageAlt = 'AI-generated editorial photography: ' + cleanHeadline;\n  heroImageCaption = 'AI Generated: Visual editorial overview of ' + cleanHeadline;\n  imageSourceType = 'Photorealistic AI Art';\n}\n\n/* Supporting Visual Breakdowns inside article body */\nvar sup1Prompt = encodeURIComponent('detailed diagrammatic and architectural view of ' + cleanHeadline + ', clean modern technical editorial style, photorealistic, 8k');\nvar sup1Url = 'https://image.pollinations.ai/prompt/' + sup1Prompt + '?width=1200&height=750&nologo=true';\n\nvar sup2Prompt = encodeURIComponent('practical real world execution and workplace synthesis of ' + cleanHeadline + ', modern office environment, cinematic lighting, photorealistic 8k');\nvar sup2Url = 'https://image.pollinations.ai/prompt/' + sup2Prompt + '?width=1200&height=750&nologo=true';\n\n/* Valid Category Protection */\nvar validCats = ['technology-ai', 'business', 'education', 'lifestyle', 'software-tutorials', 'digital-skills', 'internet-trends'];\nvar category = article.category && validCats.indexOf(article.category) !== -1 ? article.category : 'technology-ai';\n\nvar articlePayload = {\n  slug: slug,\n  title: String(article.title || '').slice(0, 90),\n  excerpt: article.excerpt || article.title,\n  description: String(article.description || article.excerpt || article.title).slice(0, 160),\n  content: article.content,\n  category: category,\n  tags: Array.isArray(article.tags) && article.tags.length ? article.tags : ['news', 'guide', 'insights', category],\n  image: heroImageUrl,\n  imageAlt: heroImageAlt,\n  heroImage: heroImageUrl,\n  heroImageAlt: heroImageAlt,\n  heroImageCaption: heroImageCaption,\n  supportingImage1: sup1Url,\n  supportingImage1Alt: 'Methodology breakdown: ' + cleanHeadline,\n  supportingImage1Caption: 'Architectural analysis and key operational metrics.',\n  supportingImage2: sup2Url,\n  supportingImage2Alt: 'Practical implementation: ' + cleanHeadline,\n  supportingImage2Caption: 'Synthesis and real-world execution framework.',\n  sources: article.sources || [{ title: sourceDomain + ' News', url: prepData.originalLink }],\n  verification: ['Verify primary facts and figures against official corporate filings and regulatory documentation.'],\n  readingTime: readingTime,\n  wordCount: words,\n  publishedAt: now,\n  approvedAt: now,\n  approvedBy: 'Christian Agbodzi',\n  reviewer: 'Christian Agbodzi',\n  approved: true,\n  status: 'published',\n  visuallyComplete: true,\n  visualIdentity: {\n    provider: imageSourceType.indexOf('Press') !== -1 ? 'news-source-photo' : 'pollinations-flux-ai',\n    style: 'photorealistic-editorial',\n    generatedAt: now\n  }\n};\n\nvar jsonString = JSON.stringify(articlePayload, null, 2);\nvar b64Content = Buffer.from(jsonString).toString('base64');\n\nreturn [{\n  json: {\n    slug: slug,\n    title: articlePayload.title,\n    category: category,\n    readingTime: readingTime,\n    wordCount: words,\n    imageUrl: heroImageUrl,\n    imageSourceType: imageSourceType,\n    base64Content: b64Content,\n    url: 'https://signalnestnews.vercel.app/articles/' + slug\n  }\n}];"
+        "jsCode": "var rawText = '';\ntry {\n  rawText = $input.first().json.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Gemini API response did not contain candidates: ' + JSON.stringify($input.first().json));\n}\n\nvar cleaned = rawText.replace(/^\\s*```(?:json)?/i, '').replace(/```\\s*$/, '').trim();\nvar article = JSON.parse(cleaned);\n\nvar slug = (article.title || 'article')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 75);\n\nvar words = String(article.content || '').replace(/<[^>]*>/g, ' ').split(/\\s+/).filter(Boolean).length;\nvar readingTime = Math.max(1, Math.round(words / 225));\nvar now = new Date().toISOString();\n\n/* Hybrid Image Selection: Real Web News Photo (if present) OR Real AI Generation */\nvar prepData = $('Prepare Article Prompt').first().json || {};\nvar realWebImage = String(prepData.realWebImage || '').trim();\nvar sourceDomain = String(prepData.sourceDomain || 'Web News');\nvar cleanHeadline = String(article.title || '').replace(/['\"]/g, '').trim();\n\nvar heroImageUrl = '';\nvar heroImageAlt = '';\nvar heroImageCaption = '';\nvar imageSourceType = '';\n\nif (realWebImage && realWebImage.startsWith('http')) {\n  heroImageUrl = realWebImage;\n  heroImageAlt = cleanHeadline + ' - Authentic news press photo via ' + sourceDomain;\n  heroImageCaption = 'Authentic editorial press photography via ' + sourceDomain + ' news reporting.';\n  imageSourceType = 'Authentic Web Press Photo';\n} else {\n  var imgPrompt = encodeURIComponent('editorial photography of ' + cleanHeadline + ', photorealistic, modern journalistic style, cinematic lighting, 8k, high quality editorial publication');\n  heroImageUrl = 'https://image.pollinations.ai/prompt/' + imgPrompt + '?width=1200&height=675&nologo=true';\n  heroImageAlt = 'AI-generated editorial photography: ' + cleanHeadline;\n  heroImageCaption = 'AI Generated: Visual editorial overview of ' + cleanHeadline;\n  imageSourceType = 'Photorealistic AI Art';\n}\n\n/* Supporting Visual Breakdowns inside article body */\nvar sup1Prompt = encodeURIComponent('detailed diagrammatic and architectural view of ' + cleanHeadline + ', clean modern technical editorial style, photorealistic, 8k');\nvar sup1Url = 'https://image.pollinations.ai/prompt/' + sup1Prompt + '?width=1200&height=750&nologo=true';\n\nvar sup2Prompt = encodeURIComponent('practical real world execution and workplace synthesis of ' + cleanHeadline + ', modern office environment, cinematic lighting, photorealistic 8k');\nvar sup2Url = 'https://image.pollinations.ai/prompt/' + sup2Prompt + '?width=1200&height=750&nologo=true';\n\n/* Valid Category Protection */\nvar validCats = ['technology-ai', 'business', 'education', 'lifestyle', 'software-tutorials', 'digital-skills', 'internet-trends'];\nvar category = article.category && validCats.indexOf(article.category) !== -1 ? article.category : 'technology-ai';\n\nvar articlePayload = {\n  slug: slug,\n  title: String(article.title || '').slice(0, 90),\n  excerpt: article.excerpt || article.title,\n  description: String(article.description || article.excerpt || article.title).slice(0, 160),\n  content: article.content,\n  category: category,\n  tags: Array.isArray(article.tags) && article.tags.length ? article.tags : ['news', 'guide', 'insights', category],\n  image: heroImageUrl,\n  imageAlt: heroImageAlt,\n  heroImage: heroImageUrl,\n  heroImageAlt: heroImageAlt,\n  heroImageCaption: heroImageCaption,\n  supportingImage1: sup1Url,\n  supportingImage1Alt: 'Methodology breakdown: ' + cleanHeadline,\n  supportingImage1Caption: 'Architectural analysis and key operational metrics.',\n  supportingImage2: sup2Url,\n  supportingImage2Alt: 'Practical implementation: ' + cleanHeadline,\n  supportingImage2Caption: 'Synthesis and real-world execution framework.',\n  sources: article.sources || [{ title: sourceDomain + ' News', url: prepData.originalLink }],\n  verification: ['Verify primary facts and figures against official corporate filings and regulatory documentation.'],\n  readingTime: readingTime,\n  wordCount: words,\n  publishedAt: now,\n  approvedAt: now,\n  approvedBy: 'Christian Agbodzi',\n  reviewer: 'Christian Agbodzi',\n  approved: true,\n  status: 'published',\n  visuallyComplete: true,\n  visualIdentity: {\n    provider: imageSourceType.indexOf('Press') !== -1 ? 'news-source-photo' : 'pollinations-flux-ai',\n    style: 'photorealistic-editorial',\n    generatedAt: now\n  }\n};\n\nvar jsonString = JSON.stringify(articlePayload, null, 2);\nvar b64Content = Buffer.from(jsonString).toString('base64');\n\nvar targetChatId = $('Parse Command & Pick Category').first().json.chatId || '7785938669';\n\nreturn [{\n  json: {\n    slug: slug,\n    title: articlePayload.title,\n    category: category,\n    readingTime: readingTime,\n    wordCount: words,\n    imageUrl: heroImageUrl,\n    imageSourceType: imageSourceType,\n    chatId: targetChatId,\n    base64Content: b64Content,\n    url: 'https://signalnestnews.vercel.app/articles/' + slug\n  }\n}];"
       },
       "id": "node-format-article",
       "name": "Format Article & Build JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
-        340
+        1300,
+        300
       ]
     },
     {
@@ -125,8 +154,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1320,
-        340
+        1520,
+        300
       ]
     },
     {
@@ -135,7 +164,7 @@
         "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\",\n  \"parse_mode\": \"HTML\",\n  \"text\": \"🚀 <b>SignalNest: New Article Published!</b>\\n\\n<b>Title:</b> {{ $('Format Article & Build JSON').first().json.title }}\\n<b>Category:</b> <code>{{ $('Format Article & Build JSON').first().json.category }}</code>\\n<b>Words:</b> {{ $('Format Article & Build JSON').first().json.wordCount }} ({{ $('Format Article & Build JSON').first().json.readingTime }} min read)\\n<b>Image Source:</b> {{ $('Format Article & Build JSON').first().json.imageSourceType }}\\n\\n🖼 <a href=\\\"{{ $('Format Article & Build JSON').first().json.imageUrl }}\\\">View Photo</a>\\n👉 <a href=\\\"{{ $('Format Article & Build JSON').first().json.url }}\\\">Read Live Article</a>\"\n}",
+        "jsonBody": "={\n  \"chat_id\": \"{{ $('Format Article & Build JSON').first().json.chatId || $env.TELEGRAM_CHAT_ID }}\",\n  \"parse_mode\": \"HTML\",\n  \"text\": \"🚀 <b>SignalNest: New Article Published!</b>\\n\\n<b>Title:</b> {{ $('Format Article & Build JSON').first().json.title }}\\n<b>Category:</b> <code>{{ $('Format Article & Build JSON').first().json.category }}</code>\\n<b>Words:</b> {{ $('Format Article & Build JSON').first().json.wordCount }} ({{ $('Format Article & Build JSON').first().json.readingTime }} min read)\\n<b>Photo:</b> {{ $('Format Article & Build JSON').first().json.imageSourceType }}\\n\\n🖼 <a href=\\\"{{ $('Format Article & Build JSON').first().json.imageUrl }}\\\">View Photo</a>\\n👉 <a href=\\\"{{ $('Format Article & Build JSON').first().json.url }}\\\">Read Live Article</a>\"\n}",
         "options": {}
       },
       "id": "node-telegram-alert",
@@ -143,17 +172,28 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1540,
-        340
+        1740,
+        300
       ]
     }
   ],
   "connections": {
+    "Telegram Bot Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Command & Pick Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Every 6 Hours": {
       "main": [
         [
           {
-            "node": "Fetch Latest News",
+            "node": "Parse Command & Pick Category",
             "type": "main",
             "index": 0
           }
@@ -161,6 +201,17 @@
       ]
     },
     "Test Workflow (Manual)": {
+      "main": [
+        [
+          {
+            "node": "Parse Command & Pick Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command & Pick Category": {
       "main": [
         [
           {
