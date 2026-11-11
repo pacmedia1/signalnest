@@ -65,10 +65,11 @@ function isPublishable(record, file) {
     if (record.status !== 'published') problems.push(`status is "${record.status}" (needs "published")`);
     if (record.approved !== true) problems.push('approved is not true (human approval required)');
     if (!record.approvedAt) problems.push('approvedAt is missing');
-    const slug = record.slug || '';
-    if (!isValidSlug(slug)) problems.push(`invalid slug "${slug}"`);
+    const slug = String(record.slug || '').replace(/^-+|-+$/g, '');
+    if (!isValidSlug(slug)) problems.push(`invalid slug "${record.slug}"`);
     if (!record.title || String(record.title).length < 10) problems.push('title too short');
-    if (!record.description || String(record.description).length < 40) problems.push('description too short (needs 40+ chars)');
+    const desc = record.description || record.excerpt || '';
+    if (!desc || String(desc).length < 40) problems.push('description too short (needs 40+ chars)');
     if (!record.category || !CATEGORY_BY_SLUG.has(record.category)) problems.push(`unknown category "${record.category}"`);
     if (!record.publishedAt || !toIsoDate(record.publishedAt)) problems.push('publishedAt missing or invalid');
     if (!record.content || stripHtml(record.content).length < 200) problems.push('content missing or too short');
@@ -92,13 +93,15 @@ function normaliseArticle(record, file) {
 
   const publishedIso = toIsoDate(record.publishedAt);
   const updatedIso = record.updatedAt ? toIsoDate(record.updatedAt) : '';
+  const cleanSlug = String(record.slug || '').replace(/^-+|-+$/g, '');
+  const description = record.description || record.excerpt || '';
 
   return {
     raw: record,
     file,
-    slug: record.slug,
+    slug: cleanSlug,
     title: record.title,
-    description: record.description,
+    description,
     category,
     categorySlug: category.slug,
     categoryName: category.name,
