@@ -6,7 +6,7 @@
   "locale": "en-US",
   "language": "en",
   "googleSiteVerification": "6WjFMJ6wzkq8_LxnLpUyo9and92u0qmoPZhla3w8ZTk",
-  "msvalidate": "",
+  "msvalidate": "AAAFD162BFC837A2BFE54A32D501F70B",
   "publisherLogo": "/assets/images/logo.svg",
   "defaultOgImage": "/assets/images/og-default.svg",
   "twitterHandle": "",
@@ -16,32 +16,89 @@
     "sameAs": []
   },
   "nav": [
-    { "label": "Home", "href": "/" },
-    { "label": "Technology & AI", "href": "/categories/technology-ai" },
-    { "label": "Education & Careers", "href": "/categories/education" },
-    { "label": "Business & Finance", "href": "/categories/business" },
-    { "label": "Digital Lifestyle", "href": "/categories/lifestyle" },
-    { "label": "Digital Skills", "href": "/categories/digital-skills" },
-    { "label": "Software & Tutorials", "href": "/categories/software-tutorials" },
-    { "label": "Internet Trends", "href": "/categories/internet-trends" }
+    {
+      "label": "Home",
+      "href": "/"
+    },
+    {
+      "label": "Technology & AI",
+      "href": "/categories/technology-ai"
+    },
+    {
+      "label": "Education & Careers",
+      "href": "/categories/education"
+    },
+    {
+      "label": "Business & Finance",
+      "href": "/categories/business"
+    },
+    {
+      "label": "Digital Lifestyle",
+      "href": "/categories/lifestyle"
+    },
+    {
+      "label": "Digital Skills",
+      "href": "/categories/digital-skills"
+    },
+    {
+      "label": "Software & Tutorials",
+      "href": "/categories/software-tutorials"
+    },
+    {
+      "label": "Internet Trends",
+      "href": "/categories/internet-trends"
+    }
   ],
   "footerLinks": [
-    { "label": "About", "href": "/about" },
-    { "label": "Contact", "href": "/contact" },
-    { "label": "Editorial Policy", "href": "/legal/editorial-policy" },
-    { "label": "Privacy Policy", "href": "/legal/privacy" },
-    { "label": "Cookie Notice", "href": "/legal/cookies" },
-    { "label": "Terms", "href": "/legal/terms" },
-    { "label": "Affiliate Disclosure", "href": "/legal/affiliate-disclosure" },
-    { "label": "Sitemap", "href": "/sitemap.xml" }
+    {
+      "label": "About",
+      "href": "/about"
+    },
+    {
+      "label": "Contact",
+      "href": "/contact"
+    },
+    {
+      "label": "Editorial Policy",
+      "href": "/legal/editorial-policy"
+    },
+    {
+      "label": "Privacy Policy",
+      "href": "/legal/privacy"
+    },
+    {
+      "label": "Cookie Notice",
+      "href": "/legal/cookies"
+    },
+    {
+      "label": "Terms",
+      "href": "/legal/terms"
+    },
+    {
+      "label": "Affiliate Disclosure",
+      "href": "/legal/affiliate-disclosure"
+    },
+    {
+      "label": "Sitemap",
+      "href": "/sitemap.xml"
+    }
   ],
   "social": [],
   "socialPlaceholders": {
     "note": "Populate this array with real profile URLs only. Empty = nothing is rendered, no fake links.",
-    "expectedShape": { "label": "X", "href": "https://x.com/yourhandle" }
+    "expectedShape": {
+      "label": "X",
+      "href": "https://x.com/yourhandle"
+    }
   },
-  "pagination": { "perPage": 9 },
-  "homepage": { "featuredCount": 1, "latestCount": 6, "trendingCount": 5 },
+  "pagination": {
+    "perPage": 9
+  },
+  "homepage": {
+    "featuredCount": 1,
+    "latestCount": 6,
+    "trendingCount": 5
+  },
   "newsletter": {
     "enabled": true,
     "provider": "none",
