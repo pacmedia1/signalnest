@@ -111,6 +111,12 @@ function checkArticleShape(record, file, { requirePublished }) {
     if (!Array.isArray(record.verification) || !record.verification.length) {
       warnings.push(`${label}: no verification items recorded. Statistics, prices and legal claims should be listed for human checking.`);
     }
+    if (record.image && !record.imageAlt) {
+      warnings.push(`${label}: article has an image but is missing "imageAlt" for accessibility and image SEO`);
+    }
+    if (!Array.isArray(record.keywords) || !record.keywords.length) {
+      warnings.push(`${label}: article has no "keywords" array for metadata/search indexing`);
+    }
     const headings = (clean.match(/<h2[\s>]/gi) || []).length;
     if (headings < 2) warnings.push(`${label}: only ${headings} H2 heading(s). Add structure for scanning and for the table of contents.`);
   }
@@ -121,6 +127,7 @@ const articlesDir = path.join(ROOT, 'content', 'articles');
 if (fs.existsSync(articlesDir)) {
   const files = fs.readdirSync(articlesDir).filter((f) => f.endsWith('.json'));
   const slugs = new Map();
+  const titles = new Map();
   files.forEach((name) => {
     const file = path.join(articlesDir, name);
     const record = readJson(file);
@@ -140,6 +147,11 @@ if (fs.existsSync(articlesDir)) {
     if (record.slug) {
       if (slugs.has(record.slug)) errors.push(`Duplicate slug "${record.slug}" in ${name} and ${slugs.get(record.slug)}`);
       slugs.set(record.slug, name);
+    }
+    if (record.title) {
+      const normTitle = record.title.trim().toLowerCase();
+      if (titles.has(normTitle)) errors.push(`Duplicate title "${record.title}" in ${name} and ${titles.get(normTitle)}`);
+      titles.set(normTitle, name);
     }
   });
   if (!files.length) warnings.push('content/articles is empty — the site will build with an empty homepage.');

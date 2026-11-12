@@ -1,0 +1,615 @@
+{
+  "name": "SignalNest - Autopilot with Telegram Bot Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "6e52395f-45de-4c0c-b031-8bc07bc29e12",
+      "name": "Telegram Bot Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "ec2d855a-bb43-45ed-99c1-04235598c58e",
+      "credentials": {
+        "telegramApi": {
+          "id": "3COZ7m2ibiM98B9o",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "7785938669",
+        "message": "Hi! Which categories should I write articles for? Tap the button, then enter one or more of:\n• technology-ai\n• business\n• education\n• digital-skills\n• software-tutorials\n• lifestyle\n• internet-trends\n(or \"all\"). Any other text is used as a custom topic.",
+        "responseType": "freeText",
+        "options": {
+          "messageButtonLabel": "Choose categories",
+          "responseFormTitle": "SignalNest categories",
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 12
+            }
+          }
+        }
+      },
+      "id": "df97d8af-9de2-41c6-a9ea-8aa61772bccb",
+      "name": "Ask Which Categories",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        256
+      ],
+      "webhookId": "ce144fd1-04c2-492e-ba9a-9d3973234337",
+      "credentials": {
+        "telegramApi": {
+          "id": "3COZ7m2ibiM98B9o",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "e7d12a9e-57f8-493c-8d83-9eccbdb79c80",
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        160
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f775743c-72ae-4e69-83f7-7686bb1c9499",
+      "name": "Test Workflow (Manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "var chatId = '7785938669';\nvar text = String(($input.first().json.data || {}).text || '').trim();\n\n// Feeds mapped directly to SignalNest 7 official categories\nvar cats = {\n  'technology-ai': 'https://feeds.bbci.co.uk/news/technology/rss.xml',\n  'business': 'https://feeds.bbci.co.uk/news/business/rss.xml',\n  'education': 'https://feeds.bbci.co.uk/news/education/rss.xml',\n  'digital-skills': 'https://feeds.bbci.co.uk/news/technology/rss.xml',\n  'software-tutorials': 'https://feeds.arstechnica.com/arstechnica/index',\n  'lifestyle': 'https://feeds.bbci.co.uk/news/health/rss.xml',\n  'internet-trends': 'https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml'\n};\n\nvar lower = text.toLowerCase();\nvar picked = [];\n\nif (lower.indexOf('all') !== -1) {\n  picked = Object.keys(cats);\n} else {\n  if (lower.indexOf('tech') !== -1 || lower.indexOf('ai') !== -1 || lower.indexOf('technology') !== -1) picked.push('technology-ai');\n  if (lower.indexOf('business') !== -1 || lower.indexOf('finance') !== -1 || lower.indexOf('money') !== -1) picked.push('business');\n  if (lower.indexOf('education') !== -1 || lower.indexOf('career') !== -1 || lower.indexOf('study') !== -1 || lower.indexOf('school') !== -1) picked.push('education');\n  if (lower.indexOf('digital-skills') !== -1 || lower.indexOf('digital skills') !== -1 || lower.indexOf('skills') !== -1) picked.push('digital-skills');\n  if (lower.indexOf('software') !== -1 || lower.indexOf('tutorial') !== -1 || lower.indexOf('code') !== -1 || lower.indexOf('dev') !== -1) picked.push('software-tutorials');\n  if (lower.indexOf('lifestyle') !== -1 || lower.indexOf('health') !== -1 || lower.indexOf('wellness') !== -1 || lower.indexOf('sleep') !== -1) picked.push('lifestyle');\n  if (lower.indexOf('internet') !== -1 || lower.indexOf('trend') !== -1 || lower.indexOf('social') !== -1 || lower.indexOf('game') !== -1 || lower.indexOf('gaming') !== -1) picked.push('internet-trends');\n}\n\npicked = picked.filter(function(v, i, a) { return a.indexOf(v) === i; });\n\nif (picked.length === 0) {\n  // Custom topic entered or empty: allow Gemini dynamic category classification\n  return [{ json: { chatId: chatId, targetCategory: 'auto', feedUrl: cats['technology-ai'], customTopic: text } }];\n}\n\nreturn picked.map(function (c) {\n  return { json: { chatId: chatId, targetCategory: c, feedUrl: cats[c], customTopic: '' } };\n});"
+      },
+      "id": "66bd121d-4afa-45e0-ba82-491740e7ccb4",
+      "name": "Parse Command & Pick Category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.feedUrl }}",
+        "options": {}
+      },
+      "id": "15c3442e-8faf-43b7-ac24-c612e45a4f54",
+      "name": "Fetch Latest News",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        160
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5ad3ebb9-44fc-4936-b0fb-dbd8e4879b88",
+      "name": "Limit To One Story",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "var item = $input.first().json;\nvar routeData = $('Category Loop').first().json || {};\nvar customTopic = String(routeData.customTopic || '').trim();\n\nvar title = customTopic || String(item.title || 'Latest Emerging Development').trim();\nvar link = customTopic ? 'https://signalnestnews.vercel.app' : String(item.link || 'https://www.bbc.co.uk/news').trim();\nvar snippet = customTopic ? ('In-depth analysis and comprehensive educational breakdown of ' + customTopic) : String(item.contentSnippet || item.content || item.description || '').replace(/<[^>]*>/g, '').trim().slice(0, 400);\n\n/* Extract real web news image from feed */\nvar realWebImage = '';\nif (item['media:thumbnail']) {\n  if (typeof item['media:thumbnail'] === 'string') realWebImage = item['media:thumbnail'];\n  else if (item['media:thumbnail'].$ && item['media:thumbnail'].$.url) realWebImage = item['media:thumbnail'].$.url;\n  else if (item['media:thumbnail'].url) realWebImage = item['media:thumbnail'].url;\n}\nif (!realWebImage && item.enclosure && item.enclosure.url) realWebImage = item.enclosure.url;\nif (!realWebImage && item['media:content']) {\n  if (item['media:content'].$ && item['media:content'].$.url) realWebImage = item['media:content'].$.url;\n  else if (item['media:content'].url) realWebImage = item['media:content'].url;\n}\nif (!realWebImage) {\n  var imgMatch = String(item.content || item.description || '').match(/<img[^>]+src=[\"'](https?:\\/\\/[^\"']+)[\"']/i);\n  if (imgMatch && imgMatch[1]) realWebImage = imgMatch[1];\n}\n\nif (realWebImage && realWebImage.indexOf('ichef.bbci.co.uk') !== -1) {\n  realWebImage = realWebImage.replace(/\\/standard\\/\\d+\\//, '/standard/976/');\n}\n\nvar sourceDomain = 'News Coverage';\ntry { sourceDomain = new URL(link).hostname.replace(/^www\\./, ''); } catch (e) {}\n\nvar categoryInstruction = '';\nvar targetCat = routeData.targetCategory || 'auto';\nif (targetCat !== 'auto' && ['technology-ai', 'business', 'education', 'digital-skills', 'software-tutorials', 'lifestyle', 'internet-trends'].indexOf(targetCat) !== -1) {\n  categoryInstruction = '3. Category: Must be strictly \"' + targetCat + '\".';\n} else {\n  categoryInstruction = '3. Category: Must be classified into the single best matching category from this exact list: [\"technology-ai\", \"business\", \"education\", \"digital-skills\", \"software-tutorials\", \"lifestyle\", \"internet-trends\"]. Pick the one that accurately matches the subject matter.';\n}\n\n/* Ultra High-Traffic SEO Prompt for Gemini */\nvar prompt = 'You are a master SEO journalist and web publisher for SignalNest. Write a comprehensive, high-traffic, SEO-dominant educational guide (900-1200 words) based on this news story:\\n\\n' +\n'Title: ' + title + '\\n' +\n'Summary: ' + snippet + '\\n' +\n'Source URL: ' + link + '\\n\\n' +\n'SEO & CONTENT GUIDELINES (Strict):\\n' +\n'1. Title: Under 65 characters, high search volume query, includes primary keyword near front.\\n' +\n'2. Description: 140-155 characters meta description with compelling search hook.\\n' +\ncategoryInstruction + '\\n' +\n'4. Tags: 5-6 high search volume long-tail keywords.\\n' +\n'5. Body HTML:\\n' +\n'   - Opening Lead: 40-50 words directly answering the core query (optimized for Google Featured Snippets and AI Overviews).\\n' +\n'   - Informative <h2> and <h3> subheadings covering mechanics, causes, analysis, and future outlook.\\n' +\n'   - A structured bullet list or summary breakdown of key takeaways.\\n' +\n'   - A dedicated <h2>Frequently Asked Questions</h2> section with 3-4 common questions using <h3> and <p>.\\n' +\n'   - Word count: 850 to 1250 words of authoritative, engaging prose.\\n\\n' +\n'Respond ONLY with valid JSON in this exact structure (no markdown fences, no extra text):\\n' +\n'{\\n' +\n'  \"title\": \"Clear SEO Title (under 65 chars)\",\\n' +\n'  \"excerpt\": \"2 sentence engaging summary\",\\n' +\n'  \"description\": \"140-155 char meta description\",\\n' +\n'  \"category\": \"' + (targetCat !== 'auto' ? targetCat : 'technology-ai') + '\",\\n' +\n'  \"tags\": [\"keyword1\", \"keyword2\", \"keyword3\", \"keyword4\", \"keyword5\"],\\n' +\n'  \"content\": \"<p class=\\\"lead\\\">Direct answer lead...</p><h2>...</h2><p>...</p><h2>Frequently Asked Questions</h2><h3>...</h3><p>...</p>\",\\n' +\n'  \"sources\": [{\"title\": \"' + sourceDomain + ' News Report\", \"url\": \"' + link + '\"}]\\n' +\n'}';\n\nreturn [{ json: { originalTitle: title, originalLink: link, realWebImage: realWebImage, sourceDomain: sourceDomain, prompt: prompt } }];"
+      },
+      "id": "d2057efa-97b4-48ef-9bda-e48eaf92bd6d",
+      "name": "Prepare Article Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": {{ JSON.stringify($json.prompt) }}\n        }\n      ]\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "3294c656-7383-47c9-98f2-e986a819b28e",
+      "name": "Gemini AI Generate Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        160
+      ],
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NipbdFD6UDW3Rc0X",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "var rawText = '';\ntry {\n  rawText = $input.first().json.candidates[0].content.parts[0].text;\n} catch (e) {\n  throw new Error('Gemini API response did not contain candidates: ' + JSON.stringify($input.first().json));\n}\n\nvar cleaned = rawText.replace(/^\\s*```(?:json)?/i, '').replace(/```\\s*$/, '').trim();\n/* Escape raw control characters ONLY inside JSON string literals (structural whitespace is preserved) */\ncleaned = cleaned.replace(/\"(?:[^\"\\\\]|\\\\.)*\"/g, function(match) {\n  return match.replace(/[\\x00-\\x1f]/g, function(ch) {\n    var esc = {'\\t': '\\\\t', '\\n': '\\\\n', '\\r': '\\\\r'};\n    return esc[ch] || '\\\\u' + ('000' + ch.charCodeAt(0).toString(16)).slice(-4);\n  });\n});\nvar article = JSON.parse(cleaned);\n\n/* Safe Slug Generation - guarantees no trailing hyphens */\nvar slug = (article.title || 'article')\n  .toLowerCase()\n  .replace(/[^a-z0-9]+/g, '-')\n  .slice(0, 70)\n  .replace(/^-+|-+$/g, '');\nif (!slug || slug.length < 3) slug = 'article-' + Date.now();\n\nvar words = String(article.content || '').replace(/<[^>]*>/g, ' ').split(/\\s+/).filter(Boolean).length;\nvar readingTime = Math.max(1, Math.round(words / 225));\nvar now = new Date().toISOString();\n\n/* Hybrid Image Selection: Real Web News Photo (if present) OR Real AI Generation */\nvar prepData = $('Prepare Article Prompt').first().json || {};\nvar realWebImage = String(prepData.realWebImage || '').trim();\nvar sourceDomain = String(prepData.sourceDomain || 'Web News');\nvar cleanHeadline = String(article.title || '').replace(/['\"]/g, '').trim();\n\nvar heroImageUrl = '';\nvar heroImageAlt = '';\nvar heroImageCaption = '';\nvar imageSourceType = '';\n\nif (realWebImage && realWebImage.startsWith('http')) {\n  heroImageUrl = realWebImage;\n  heroImageAlt = cleanHeadline + ' - Authentic news press photo via ' + sourceDomain;\n  heroImageCaption = 'Authentic editorial press photography via ' + sourceDomain + ' news reporting.';\n  imageSourceType = 'Authentic Web Press Photo';\n} else {\n  var imgPrompt = encodeURIComponent('editorial photography of ' + cleanHeadline + ', photorealistic, modern journalistic style, cinematic lighting, 8k, high quality editorial publication');\n  heroImageUrl = 'https://image.pollinations.ai/prompt/' + imgPrompt + '?width=1200&height=675&nologo=true';\n  heroImageAlt = 'AI-generated editorial photography: ' + cleanHeadline;\n  heroImageCaption = 'AI Generated: Visual editorial overview of ' + cleanHeadline;\n  imageSourceType = 'Photorealistic AI Art';\n}\n\n/* Supporting Visual Breakdowns inside article body */\nvar sup1Prompt = encodeURIComponent('detailed diagrammatic and architectural view of ' + cleanHeadline + ', clean modern technical editorial style, photorealistic, 8k');\nvar sup1Url = 'https://image.pollinations.ai/prompt/' + sup1Prompt + '?width=1200&height=750&nologo=true';\n\nvar sup2Prompt = encodeURIComponent('practical real world execution and workplace synthesis of ' + cleanHeadline + ', modern office environment, cinematic lighting, photorealistic 8k');\nvar sup2Url = 'https://image.pollinations.ai/prompt/' + sup2Prompt + '?width=1200&height=750&nologo=true';\n\n/* Valid Category Resolution across all 7 official categories */\nvar validCats = ['technology-ai', 'business', 'education', 'digital-skills', 'software-tutorials', 'lifestyle', 'internet-trends'];\nvar routeData = $('Category Loop').first().json || {};\nvar targetCategory = routeData.targetCategory;\n\nvar category = 'technology-ai';\nif (targetCategory && targetCategory !== 'auto' && validCats.indexOf(targetCategory) !== -1) {\n  category = targetCategory;\n} else if (article.category && validCats.indexOf(article.category) !== -1) {\n  category = article.category;\n} else {\n  var fullText = (cleanHeadline + ' ' + (article.description || '') + ' ' + (article.excerpt || '')).toLowerCase();\n  if (fullText.indexOf('business') !== -1 || fullText.indexOf('finance') !== -1 || fullText.indexOf('market') !== -1 || fullText.indexOf('economy') !== -1) category = 'business';\n  else if (fullText.indexOf('education') !== -1 || fullText.indexOf('career') !== -1 || fullText.indexOf('degree') !== -1 || fullText.indexOf('study') !== -1) category = 'education';\n  else if (fullText.indexOf('lifestyle') !== -1 || fullText.indexOf('health') !== -1 || fullText.indexOf('wellness') !== -1 || fullText.indexOf('food') !== -1 || fullText.indexOf('sleep') !== -1) category = 'lifestyle';\n  else if (fullText.indexOf('tutorial') !== -1 || fullText.indexOf('software') !== -1 || fullText.indexOf('how to') !== -1) category = 'software-tutorials';\n  else if (fullText.indexOf('skill') !== -1 || fullText.indexOf('freelance') !== -1 || fullText.indexOf('remote') !== -1) category = 'digital-skills';\n  else if (fullText.indexOf('trend') !== -1 || fullText.indexOf('social') !== -1 || fullText.indexOf('game') !== -1 || fullText.indexOf('gaming') !== -1 || fullText.indexOf('viral') !== -1) category = 'internet-trends';\n  else category = 'technology-ai';\n}\n\n/* Ensure Description is always present and >= 45 chars */\nvar description = String(article.description || article.excerpt || article.title || '').trim();\nif (description.length < 45) {\n  description = description + ' - Discover in-depth analysis, key takeaways, and expert reporting on SignalNest.';\n}\ndescription = description.slice(0, 160);\n\nvar articlePayload = {\n  slug: slug,\n  title: String(article.title || '').slice(0, 90),\n  excerpt: article.excerpt || description,\n  description: description,\n  content: article.content,\n  category: category,\n  tags: Array.isArray(article.tags) && article.tags.length ? article.tags : ['news', 'guide', 'insights', category],\n  image: heroImageUrl,\n  imageAlt: heroImageAlt,\n  heroImage: heroImageUrl,\n  heroImageAlt: heroImageAlt,\n  heroImageCaption: heroImageCaption,\n  supportingImage1: sup1Url,\n  supportingImage1Alt: 'Methodology breakdown: ' + cleanHeadline,\n  supportingImage1Caption: 'Architectural analysis and key operational metrics.',\n  supportingImage2: sup2Url,\n  supportingImage2Alt: 'Practical implementation: ' + cleanHeadline,\n  supportingImage2Caption: 'Synthesis and real-world execution framework.',\n  sources: article.sources || [{ title: sourceDomain + ' News', url: prepData.originalLink }],\n  verification: ['Verify primary facts and figures against official corporate filings and regulatory documentation.'],\n  readingTime: readingTime,\n  wordCount: words,\n  publishedAt: now,\n  approvedAt: now,\n  approvedBy: 'Christian Agbodzi',\n  reviewer: 'Christian Agbodzi',\n  approved: true,\n  status: 'published',\n  visuallyComplete: true,\n  visualIdentity: {\n    provider: imageSourceType.indexOf('Press') !== -1 ? 'news-source-photo' : 'pollinations-flux-ai',\n    style: 'photorealistic-editorial',\n    generatedAt: now\n  }\n};\n\nvar jsonString = JSON.stringify(articlePayload, null, 2);\nvar b64Content = Buffer.from(jsonString).toString('base64');\nvar targetChatId = routeData.chatId || '7785938669';\n\nreturn [{\n  json: {\n    slug: slug,\n    title: articlePayload.title,\n    category: category,\n    excerpt: String(articlePayload.excerpt || ''),\n    readingTime: readingTime,\n    wordCount: words,\n    imageUrl: heroImageUrl,\n    imageSourceType: imageSourceType,\n    chatId: targetChatId,\n    base64Content: b64Content,\n    url: 'https://signalnestnews.vercel.app/articles/' + slug\n  }\n}];"
+      },
+      "id": "417687a8-642b-4784-b5c7-2d463b8e2613",
+      "name": "Format Article & Build JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "chatId": "={{ $('Format Article & Build JSON').first().json.chatId }}",
+        "message": "=Draft ready for approval\n\nTitle: {{ $('Format Article & Build JSON').first().json.title }}\nCategory: {{ $('Format Article & Build JSON').first().json.category }}\nLength: {{ $('Format Article & Build JSON').first().json.wordCount }} words ({{ $('Format Article & Build JSON').first().json.readingTime }} min read)\n\n{{ $('Format Article & Build JSON').first().json.excerpt }}\n\nImage: {{ $('Format Article & Build JSON').first().json.imageUrl }}\n\nApprove to publish to the site, or decline to discard.",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Approve and publish",
+            "disapproveLabel": "Decline"
+          }
+        },
+        "chatApproval": true,
+        "approverIds": "7785938669",
+        "options": {
+          "limitWaitTime": {
+            "values": {
+              "resumeAmount": 12
+            }
+          },
+          "appendAttribution": false
+        }
+      },
+      "id": "c9d2b101-8d90-4ec8-af95-c1ac7e105f9d",
+      "name": "Approve Article",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1904,
+        352
+      ],
+      "webhookId": "c17e435e-ff35-4573-b42e-9ce7fa39d1c3",
+      "credentials": {
+        "telegramApi": {
+          "id": "3COZ7m2ibiM98B9o",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "approved",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a21e3834-a675-4093-a5f4-2a3f297ee477",
+      "name": "Is Approved",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2128,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.github.com/repos/pacmedia1/signalnest/contents/content/articles/{{ $('Format Article & Build JSON').first().json.slug }}.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "SignalNest-Autopilot"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"feat(articles): publish {{ $('Format Article & Build JSON').first().json.slug }}\",\n  \"content\": \"{{ $('Format Article & Build JSON').first().json.base64Content }}\",\n  \"branch\": \"main\"\n}",
+        "options": {}
+      },
+      "id": "11e96a49-3d25-463f-9aec-d8301861a5f6",
+      "name": "Commit to GitHub (Auto-Deploy)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1776,
+        160
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "eBW7ByExPFfsuFFv",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Format Article & Build JSON').first().json.chatId || '7785938669' }}",
+        "text": "=🚀 <b>SignalNest: New Article Published!</b>\n\n<b>Title:</b> {{ $('Format Article & Build JSON').first().json.title }}\n<b>Category:</b> <code>{{ $('Format Article & Build JSON').first().json.category }}</code>\n<b>Words:</b> {{ $('Format Article & Build JSON').first().json.wordCount }} ({{ $('Format Article & Build JSON').first().json.readingTime }} min read)\n<b>Photo:</b> {{ $('Format Article & Build JSON').first().json.imageSourceType }}\n\n🖼 <a href=\"{{ $('Format Article & Build JSON').first().json.imageUrl }}\">View Photo</a>\n👉 <a href=\"{{ $('Format Article & Build JSON').first().json.url }}\">Read Live Article</a>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "392253c2-1db4-4f22-ae0c-93236942399c",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2448,
+        160
+      ],
+      "webhookId": "6e8229e3-74e7-4621-864f-7a07b3cb1360",
+      "credentials": {
+        "telegramApi": {
+          "id": "3COZ7m2ibiM98B9o",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "01f26406-ec88-4237-8603-5b73a61751ad",
+      "name": "Category Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        672,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Format Article & Build JSON').first().json.chatId }}",
+        "text": "=Discarded: {{ $('Format Article & Build JSON').first().json.title }}. Nothing was published.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "926ff72a-6a90-49c3-a520-1139d3989ff0",
+      "name": "Notify Discarded",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2352,
+        448
+      ],
+      "webhookId": "4f378ed6-00c4-41f5-be6b-e518c9a2ff6e",
+      "credentials": {
+        "telegramApi": {
+          "id": "3COZ7m2ibiM98B9o",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.vercel.com/v1/integrations/deploy/prj_2ywx6A9xMAkIRfpVa8tgi0Udla0x/7Mhx2a8LVf",
+        "options": {}
+      },
+      "id": "e81c1256-42d4-4f27-a068-154df65eef89",
+      "name": "Trigger Vercel Deploy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 25,
+        "unit": "seconds"
+      },
+      "id": "c71a399f-7649-4eb5-8e3d-24da066de947",
+      "name": "Wait for Vercel Build",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2224,
+        160
+      ],
+      "webhookId": "b9e9b28f-7c15-4fa0-863a-8610ebefbfec"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Bot Trigger": {
+      "main": [
+        [
+          {
+            "node": "Ask Which Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Which Categories": {
+      "main": [
+        [
+          {
+            "node": "Parse Command & Pick Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Ask Which Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Workflow (Manual)": {
+      "main": [
+        [
+          {
+            "node": "Ask Which Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command & Pick Category": {
+      "main": [
+        [
+          {
+            "node": "Category Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Latest News": {
+      "main": [
+        [
+          {
+            "node": "Limit To One Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit To One Story": {
+      "main": [
+        [
+          {
+            "node": "Prepare Article Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Article Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gemini AI Generate Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini AI Generate Article": {
+      "main": [
+        [
+          {
+            "node": "Format Article & Build JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Article & Build JSON": {
+      "main": [
+        [
+          {
+            "node": "Approve Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve Article": {
+      "main": [
+        [
+          {
+            "node": "Is Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Approved": {
+      "main": [
+        [
+          {
+            "node": "Commit to GitHub (Auto-Deploy)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Discarded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Commit to GitHub (Auto-Deploy)": {
+      "main": [
+        [
+          {
+            "node": "Trigger Vercel Deploy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Category Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Category Loop": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Fetch Latest News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Discarded": {
+      "main": [
+        [
+          {
+            "node": "Category Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Vercel Deploy": {
+      "main": [
+        [
+          {
+            "node": "Wait for Vercel Build",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Vercel Build": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "70907b48-6267-4b1e-b13e-63c0edf217ae",
+  "meta": {
+    "instanceId": "12771493e2316c88aefa85cd806444af4e65ee64511d30c9d9588cefc5e24c97"
+  },
+  "nodeGroups": [],
+  "id": "NYzDWB0tiIUMKcD6",
+  "tags": []
+}

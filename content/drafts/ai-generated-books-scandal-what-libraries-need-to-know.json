@@ -39,12 +39,14 @@
   "approvedAt": "2026-11-11T12:00:59.517Z",
   "approvedBy": "Christian Agbodzi",
   "reviewer": "Christian Agbodzi",
-  "approved": true,
-  "status": "published",
+  "approved": false,
+  "status": "archived",
   "visuallyComplete": true,
   "visualIdentity": {
     "provider": "pollinations-flux-ai",
     "style": "photorealistic-editorial",
     "generatedAt": "2026-11-11T12:00:59.517Z"
-  }
+  },
+  "redirectUrl": "/articles/ai-books-scandal-tamil-nadu-library-audit-explained",
+  "consolidatedInto": "ai-books-scandal-tamil-nadu-library-audit-explained"
 }

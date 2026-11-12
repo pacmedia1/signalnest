@@ -28,7 +28,9 @@
   "approvedAt": "2026-11-08T00:00:21.295Z",
   "approvedBy": "Christian Agbodzi",
   "reviewer": "Christian Agbodzi",
-  "approved": true,
-  "status": "published",
-  "visuallyComplete": true
+  "approved": false,
+  "status": "archived",
+  "visuallyComplete": true,
+  "redirectUrl": "/articles/cybertruck-production-ends-tesla-s-pivot-to-cybercabs",
+  "consolidatedInto": "cybertruck-production-ends-tesla-s-pivot-to-cybercabs"
 }

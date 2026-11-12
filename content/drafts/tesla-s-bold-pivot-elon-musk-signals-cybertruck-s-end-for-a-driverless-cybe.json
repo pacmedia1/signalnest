@@ -22,8 +22,8 @@
   "approvedAt": "2026-11-07T11:12:00.679Z",
   "approvedBy": "Christian Agbodzi",
   "reviewer": "Christian Agbodzi",
-  "approved": true,
-  "status": "published",
+  "approved": false,
+  "status": "archived",
   "heroImage": "https://image.pollinations.ai/prompt/photorealistic%20editorial%20photography%20of%20autonomous%20Tesla%20Cybercab%20fleet%20with%20butterfly%20doors%20open%20in%20futuristic%20showroom%208k%20automotive%20showcase?width=1200&height=675&nologo=true",
   "heroImageAlt": "AI-generated editorial photography: Autonomous Tesla Cybercab fleet in futuristic showroom",
   "heroImageCaption": "AI Generated: Tesla driverless Cybercab robotaxi platform.",
@@ -40,5 +40,7 @@
     "accent": "#F28C28",
     "secondaryAccent": "#FF9F43",
     "generatedAt": "2026-11-07T11:50:30.872Z"
-  }
+  },
+  "redirectUrl": "/articles/cybertruck-production-ends-tesla-s-pivot-to-cybercabs",
+  "consolidatedInto": "cybertruck-production-ends-tesla-s-pivot-to-cybercabs"
 }

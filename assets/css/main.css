@@ -951,6 +951,11 @@ button, .btn, .icon-btn {
 .prose code .number { color: #fdba74; }
 .prose code .operator { color: #f97316; }
 
+/* ---------- Performance: Containment & Rendering Optimizations ---------- */
+.card { contain: layout style; }
+.ad-slot { contain: layout style paint; }
+.site-footer { contain: layout style; }
+
 /* ---------- Print Styles ---------- */
 @media print {
   .site-header, .site-footer, .ad-slot, .share, .newsletter, .article-aside,

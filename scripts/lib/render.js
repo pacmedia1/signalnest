@@ -12,12 +12,24 @@ const TOKEN_RE = /\{\{\{([\s\S]+?)\}\}\}|\{\{([\s\S]+?)\}\}/g;
 function resolve(path, ctx, root) {
   const expr = String(path).trim();
   if (!expr) return undefined;
-  if (expr === '.' || expr === 'this') return ctx;
+  if (expr === '.' || expr === 'this') {
+    if (ctx && typeof ctx === 'object') {
+      if ('this' in ctx) return ctx['this'];
+      if ('.' in ctx) return ctx['.'];
+    }
+    return ctx;
+  }
   const segments = expr.split('.');
   let current = ctx;
   for (let i = 0; i < segments.length; i += 1) {
     const key = segments[i].trim();
-    if (key === 'this') { current = ctx; continue; }
+    if (key === 'this' || key === '.') {
+      if (current && typeof current === 'object') {
+        if ('this' in current) current = current['this'];
+        else if ('.' in current) current = current['.'];
+      }
+      continue;
+    }
     if (current === null || current === undefined) break;
     if (typeof current !== 'object') { current = undefined; break; }
     if (!(key in current)) {
@@ -122,9 +134,24 @@ function renderNodes(nodes, ctx, root, partials, missing) {
       const list = resolve(node.expr, ctx, root);
       if (Array.isArray(list)) {
         list.forEach((item, index) => {
-          const scoped = (item !== null && typeof item === 'object')
-            ? Object.assign(Object.create(null), ctx && typeof ctx === 'object' ? ctx : {}, item, { '@index': index, '@first': index === 0, '@last': index === list.length - 1 })
-            : { '.': item, '@index': index, '@first': index === 0, '@last': index === list.length - 1 };
+          const isObj = item !== null && typeof item === 'object';
+          const val = isObj ? (item.text || item.label || item.claim || item.note || item.value || item) : item;
+          const scoped = isObj
+            ? Object.assign(Object.create(null), ctx && typeof ctx === 'object' ? ctx : {}, item, {
+                this: val,
+                '.': val,
+                '@index': index,
+                '@first': index === 0,
+                '@last': index === list.length - 1
+              })
+            : Object.assign(Object.create(null), ctx && typeof ctx === 'object' ? ctx : {}, {
+                this: item,
+                '.': item,
+                text: item,
+                '@index': index,
+                '@first': index === 0,
+                '@last': index === list.length - 1
+              });
           out += renderNodes(node.children, scoped, root, partials, missing);
         });
       }

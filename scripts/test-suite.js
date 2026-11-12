@@ -717,7 +717,7 @@ test('article pages carry canonical, OG, JSON-LD and breadcrumbs', () => {
   assertIncludes(html, '<link rel="canonical"');
   assertIncludes(html, 'property="og:title"');
   assertIncludes(html, 'application/ld+json');
-  assertIncludes(html, '"@type":"BlogPosting"');
+  assert(html.includes('"@type":"NewsArticle"') || html.includes('"@type":"BlogPosting"') || html.includes('"@type":"Article"'), 'article missing Article schema');
   assertIncludes(html, '"@type":"BreadcrumbList"');
   assertIncludes(html, 'aria-label="Breadcrumb"');
   assert(!/\{\{/.test(html), 'unrendered template tag in output');

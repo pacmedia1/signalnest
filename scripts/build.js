@@ -140,7 +140,7 @@ function normaliseArticle(record, file) {
       accessedLabel: s.accessedAt ? formatDate(toIsoDate(s.accessedAt)) : ''
     })),
     verification: Array.isArray(record.verification)
-      ? record.verification.filter(Boolean).map((v) => escapeHtml(typeof v === 'string' ? v : (v.text || '')))
+      ? record.verification.filter(Boolean).map((v) => (typeof v === 'string' ? v : (v.text || v.claim || v.note || '')))
       : [],
     featured: record.featured === true
   };
@@ -194,9 +194,12 @@ const SITE_CTX = {
   tagline: SITE.tagline,
   description: SITE.description,
   url: SITE.url,
-  locale: SITE.locale,
-  language: SITE.language,
+  locale: SITE.locale || 'en-US',
+  ogLocale: (SITE.locale || 'en_US').replace('-', '_'),
+  language: SITE.language || 'en',
   twitterHandle: SITE.twitterHandle || '',
+  googleSiteVerification: process.env.GOOGLE_SITE_VERIFICATION || SITE.googleSiteVerification || '',
+  msvalidate: process.env.BING_SITE_VERIFICATION || process.env.MSVALIDATE || SITE.msvalidate || '',
   brandFirst: SITE.siteName.slice(0, 6),
   brandSecond: SITE.siteName.slice(6),
   author: SITE.author
@@ -235,7 +238,7 @@ function withLayout(pageCtx, contentHtml) {
     footerLinks: SITE.footerLinks,
     footerCategories: FOOTER_CATEGORIES,
     year: new Date().getUTCFullYear(),
-    ga4Id: (SITE.analytics && SITE.analytics.ga4MeasurementId) || '',
+    ga4Id: process.env.GA4_MEASUREMENT_ID || (SITE.analytics && SITE.analytics.ga4MeasurementId) || '',
     adsenseClient: (SITE.ads && SITE.ads.enabled && SITE.ads.adsense && SITE.ads.adsense.client) || (SITE.ads && SITE.ads.enabled && process.env.ADSENSE_CLIENT) || '',
     adsterraHeaderScript: (SITE.ads && SITE.ads.enabled && SITE.ads.adsterra && SITE.ads.adsterra.headerScript) || '',
     headerAd: AD_SLOTS.header,
@@ -245,7 +248,7 @@ function withLayout(pageCtx, contentHtml) {
 }
 
 function pageMeta(overrides) {
-  return Object.assign({
+  const meta = Object.assign({
     title: SITE.siteName,
     description: SITE.description,
     canonical: SITE.url + '/',
@@ -261,8 +264,11 @@ function pageMeta(overrides) {
     noIndexFeed: false,
     articlePublishedTime: '',
     articleModifiedTime: '',
-    articleSection: ''
+    articleSection: '',
+    preloadImage: ''
   }, overrides);
+  if (!meta.ogTitle) meta.ogTitle = meta.title || `${SITE.siteName} — ${SITE.tagline}`;
+  return meta;
 }
 
 /* ------------------------------------------------------------------ *
@@ -325,25 +331,40 @@ function buildArticlePages() {
     const canonical = `${SITE.url}/articles/${article.slug}`;
     const encodedUrl = encodeURIComponent(canonical);
     const encodedTitle = encodeURIComponent(article.title);
+    const imageUrl = article.image.startsWith('http') ? article.image : SITE.url + article.image;
+
+    const authorSchema = article.author && article.author.includes('Agbodzi')
+      ? {
+          '@type': 'Person',
+          name: article.author,
+          url: `${SITE.url}/about`,
+          jobTitle: 'Founder & Editor-in-Chief'
+        }
+      : {
+          '@type': 'Organization',
+          name: article.author || SITE.author.name,
+          url: `${SITE.url}/about`
+        };
 
     const jsonLd = [
       {
         '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
+        '@type': 'NewsArticle',
         mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
         headline: article.title.slice(0, 110),
         description: article.description,
-        image: [article.image.startsWith('http') ? article.image : SITE.url + article.image],
+        image: [imageUrl],
         datePublished: article.publishedIso,
         dateModified: article.updatedIso || article.publishedIso,
         articleSection: article.categoryName,
         keywords: article.keywords.join(', ') || article.tags.join(', '),
         wordCount: article.wordCount,
         inLanguage: SITE.language,
-        author: { '@type': 'Organization', name: article.author, url: SITE.url + '/about' },
+        author: authorSchema,
         publisher: {
           '@type': 'Organization',
           name: SITE.siteName,
+          url: SITE.url,
           logo: { '@type': 'ImageObject', url: SITE.url + (SITE.publisherLogo || '/assets/images/logo.svg') }
         },
         isAccessibleForFree: true
@@ -354,7 +375,7 @@ function buildArticlePages() {
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url + '/' },
           { '@type': 'ListItem', position: 2, name: article.categoryName, item: `${SITE.url}/categories/${article.categorySlug}` },
-          { '@type': 'ListItem', position: 3, name: article.title }
+          { '@type': 'ListItem', position: 3, name: article.title, item: canonical }
         ]
       }
     ].map(scriptJsonLd).join('\n');
@@ -388,8 +409,9 @@ function buildArticlePages() {
       canonical,
       ogType: 'article',
       ogTitle: article.title,
-      ogImage: article.image.startsWith('http') ? article.image : SITE.url + article.image,
+      ogImage: imageUrl,
       ogImageAlt: article.imageAlt,
+      preloadImage: imageUrl,
       jsonLd,
       bodyClass: 'page-article',
       activePath: `/categories/${article.categorySlug}`,
@@ -422,27 +444,45 @@ function buildHome() {
     countLabel: (counts.get(c.slug) || 0) === 1 ? 'article' : 'articles'
   }));
 
-  const homeJsonLd = scriptJsonLd({
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    name: SITE.siteName,
-    url: SITE.url,
-    description: SITE.description,
-    inLanguage: SITE.language,
-    publisher: { '@type': 'Organization', name: SITE.siteName, url: SITE.url },
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: { '@type': 'EntryPoint', urlTemplate: `${SITE.url}/search?q={search_term_string}` },
-      'query-input': 'required name=search_term_string'
-    }
-  });
-
-  const html = withLayout(pageMeta({
-    title: `${SITE.siteName} — ${SITE.tagline}`,
-    description: SITE.description,
-    canonical: `${SITE.url}/`,
-    ogTitle: `${SITE.siteName} — ${SITE.tagline}`,
-    jsonLd: homeJsonLd + (allArticles.length ? scriptJsonLd({
+  const homeJsonLd = [
+    scriptJsonLd({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: SITE.siteName,
+      alternateName: 'SignalNest News',
+      url: SITE.url,
+      description: SITE.description,
+      inLanguage: SITE.language,
+      publisher: {
+        '@type': 'Organization',
+        name: SITE.siteName,
+        url: SITE.url,
+        logo: {
+          '@type': 'ImageObject',
+          url: SITE.url + (SITE.publisherLogo || '/assets/images/logo.svg')
+        }
+      },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: { '@type': 'EntryPoint', urlTemplate: `${SITE.url}/search?q={search_term_string}` },
+        'query-input': 'required name=search_term_string'
+      }
+    }),
+    scriptJsonLd({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: SITE.siteName,
+      url: SITE.url,
+      logo: SITE.url + (SITE.publisherLogo || '/assets/images/logo.svg'),
+      description: SITE.description,
+      foundingDate: '2026',
+      founder: {
+        '@type': 'Person',
+        name: 'Christian Agbodzi',
+        url: `${SITE.url}/about`
+      }
+    }),
+    allArticles.length ? scriptJsonLd({
       '@context': 'https://schema.org',
       '@type': 'ItemList',
       itemListElement: allArticles.slice(0, 10).map((a, index) => ({
@@ -450,7 +490,15 @@ function buildHome() {
         position: index + 1,
         url: `${SITE.url}/articles/${a.slug}`
       }))
-    }) : ''),
+    }) : ''
+  ].filter(Boolean).join('\n');
+
+  const html = withLayout(pageMeta({
+    title: `${SITE.siteName} — ${SITE.tagline}`,
+    description: SITE.description,
+    canonical: `${SITE.url}/`,
+    ogTitle: `${SITE.siteName} — ${SITE.tagline}`,
+    jsonLd: homeJsonLd,
     activePath: '/'
   }), render(templates.home, {
     site: SITE_CTX,
@@ -531,6 +579,7 @@ function buildSearchPage() {
     title: `Search | ${SITE.siteName}`,
     description: `Search every published ${SITE.siteName} article by title, description, category or full text.`,
     canonical: `${SITE.url}/search`,
+    robots: 'noindex, follow',
     jsonLd: scriptJsonLd({
       '@context': 'https://schema.org',
       '@type': 'SearchResultsPage',
@@ -633,8 +682,7 @@ function buildFeedsAndData() {
 
   /* sitemap.xml */
   const urls = [
-    { loc: SITE.url + '/', lastmod: allArticles[0] ? allArticles[0].publishedIso : new Date().toISOString(), priority: '1.0', changefreq: 'daily' },
-    { loc: `${SITE.url}/search`, lastmod: new Date().toISOString(), priority: '0.3', changefreq: 'monthly' }
+    { loc: SITE.url + '/', lastmod: allArticles[0] ? allArticles[0].publishedIso : new Date().toISOString(), priority: '1.0', changefreq: 'daily' }
   ];
   CATEGORIES.forEach((c) => {
     const newest = allArticles.find((a) => a.categorySlug === c.slug);
@@ -677,17 +725,16 @@ ${urls.map((u) => `  <url>
   write('sitemap.xml', sitemap);
 
   /* robots.txt */
-  const robots = `# ${SITE.siteName}
+  const robots = `# ${SITE.siteName} Robots Policy
 User-agent: *
 Allow: /
-Disallow: /admin
+Allow: /assets/
+Allow: /categories/
+Allow: /articles/
 Disallow: /admin/
 Disallow: /data/
+Disallow: /search
 Disallow: /404
-
-# Drafts, review screens and internal endpoints are never public.
-User-agent: *
-Crawl-delay: 1
 
 Sitemap: ${SITE.url}/sitemap.xml
 `;

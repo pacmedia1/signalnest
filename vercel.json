@@ -6,6 +6,43 @@
   "installCommand": "echo \"no dependencies to install\"",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/articles/ai-generated-books-scandal-what-libraries-need-to-know",
+      "destination": "/articles/ai-books-scandal-tamil-nadu-library-audit-explained",
+      "permanent": true
+    },
+    {
+      "source": "/articles/from-cybertruck-s-edge-to-cybercab-s-horizon-tesla-s-bold-pivot-towards-an",
+      "destination": "/articles/cybertruck-production-ends-tesla-s-pivot-to-cybercabs",
+      "permanent": true
+    },
+    {
+      "source": "/articles/tesla-s-bold-pivot-cybertruck-s-farewell-paves-the-way-for-the-robotaxi-rev",
+      "destination": "/articles/cybertruck-production-ends-tesla-s-pivot-to-cybercabs",
+      "permanent": true
+    },
+    {
+      "source": "/articles/tesla-s-bold-pivot-elon-musk-signals-cybertruck-s-end-for-a-driverless-cybe",
+      "destination": "/articles/cybertruck-production-ends-tesla-s-pivot-to-cybercabs",
+      "permanent": true
+    },
+    {
+      "source": "/articles/tesla-s-pivotal-shift-cybertruck-s-retreat-paves-way-for-the-autonomous-cyb",
+      "destination": "/articles/cybertruck-production-ends-tesla-s-pivot-to-cybercabs",
+      "permanent": true
+    },
+    {
+      "source": "/articles/the-great-tesla-pivot-cybertruck-s-sunset-for-the-rise-of-cybercabs",
+      "destination": "/articles/cybertruck-production-ends-tesla-s-pivot-to-cybercabs",
+      "permanent": true
+    },
+    {
+      "source": "/articles/the-sunset-of-cybertruck-tesla-s-strategic-pivot-towards-cybercabs-and-an-a",
+      "destination": "/articles/cybertruck-production-ends-tesla-s-pivot-to-cybercabs",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -220,7 +220,12 @@ function formatDate(iso, locale = 'en-GB') {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+  const safeLocale = String(locale || 'en-GB').replace('_', '-');
+  try {
+    return d.toLocaleDateString(safeLocale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+  } catch (e) {
+    return d.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+  }
 }
 
 /* ------------------------------------------------------------------ *

@@ -1,23 +1,24 @@
 {
   "slug": "elon-musk-appears-to-signal-the-end-of-the-road-for-cybertruck",
-  "title": "Elon Musk appears to signal the end of the road for Cybertruck",
-  "description": "A practical, human-reviewed guide examining real-time automation architecture, autonomous agents, and deterministic verification gates in 2026.",
+  "title": "Production AI Publishing Pipelines: Event-Driven Architecture Guide",
+  "description": "A complete guide to building resilient, automated digital publishing pipelines using event-driven architectures, verification gates, and zero-leakage security.",
   "status": "published",
   "approved": true,
   "approvedBy": "Christian Agbodzi",
   "approvedAt": "2026-11-07T11:01:37.206Z",
-  "category": "technology-ai",
+  "category": "software-tutorials",
   "tags": [
-    "ai-automation",
-    "realtime-data",
-    "engineering",
-    "architecture"
+    "automation",
+    "software-architecture",
+    "event-driven",
+    "data-pipelines",
+    "web-engineering"
   ],
   "keywords": [
-    "realtime automation",
-    "autonomous ai agents",
-    "signalnest architecture",
-    "editorial verification"
+    "ai publishing pipelines",
+    "event driven publishing architecture",
+    "automated editorial workflows",
+    "deterministic verification gates"
   ],
   "author": "Christian Agbodzi",
   "reviewer": "Christian Agbodzi",
@@ -51,9 +52,8 @@
     }
   ],
   "verification": [
-    "Confirm real-time topic freshness and RSS source origin.",
-    "Audit outbound primary links for HTTP 200 availability.",
-    "Verify 3 original NA10 vector SVGs are present and accessible."
+    "Audit sample webhook payloads against Node.js runtime security standards.",
+    "Verify zero-secret browser protocol guarantees in production deployments."
   ],
   "featured": false,
   "visuallyComplete": true,
@@ -80,5 +80,6 @@
     "generatedAt": "2026-11-07T11:50:30.861Z"
   },
   "image": "https://image.pollinations.ai/prompt/editorial%20photography%20of%20Tesla%20Cybertruck%20parked%20next%20to%20golden%20autonomous%20Tesla%20Cybercab%20at%20sunset%20on%20highway%208k%20photorealistic?width=1200&height=675&nologo=true",
-  "imageAlt": "AI-generated editorial photography: Tesla Cybertruck alongside autonomous Cybercab robotaxi at sunset"
+  "imageAlt": "AI-generated editorial photography: Tesla Cybertruck alongside autonomous Cybercab robotaxi at sunset",
+  "excerpt": "Learn how production engineering teams deploy reliable, verifiable automation pipelines without sacrificing performance, privacy, or monetization integrity."
 }
